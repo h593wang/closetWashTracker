@@ -1,0 +1,64 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+
+def keystorePropertiesFile = rootProject.file("keystore.properties");
+def keystoreProperties = new Properties()
+keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+android {
+    signingConfigs {
+        release {
+            storeFile file(keystoreProperties['RELEASE_STORE_FILE'])
+            storePassword = keystoreProperties['RELEASE_STORE_PASSWORD']
+            keyAlias = keystoreProperties['RELEASE_KEY_ALIAS']
+            keyPassword = keystoreProperties['RELEASE_KEY_PASSWORD']
+        }
+    }
+    compileSdkVersion 28
+
+
+    defaultConfig {
+        applicationId "com.palepeak.closet_tracker"
+        minSdkVersion 21
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+        buildTypes {
+            release {
+                signingConfig signingConfigs.release
+                // Enables code shrinking, obfuscation, and optimization for only
+                // your project's release build type.
+                minifyEnabled true
+
+                // Enables resource shrinking, which is performed by the
+                // Android Gradle plugin.
+                shrinkResources true
+
+                // Includes the default ProGuard rules files that are packaged with
+                // the Android Gradle plugin. To learn more, go to the section about
+                // R8 configuration files.
+                proguardFiles getDefaultProguardFile(
+                        'proguard-android-optimize.txt'),
+                        'proguard-rules.pro'
+            }
+        }
+
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'androidx.appcompat:appcompat:1.0.2'
+    implementation 'androidx.core:core-ktx:1.0.2'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'com.squareup.picasso:picasso:2.71828'
+}
