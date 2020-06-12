@@ -5,9 +5,10 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.os.Bundle
-import android.os.Environment
+import android.os.*
 import android.provider.MediaStore
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.TypedValue
 import android.view.View
 import android.view.inputmethod.InputMethodManager
@@ -33,7 +34,9 @@ class MainActivity : AppCompatActivity() {
     lateinit var categories: RecyclerView
     lateinit var today: RecyclerView
     lateinit var imageViewPreview: ImageView
+    lateinit var searchEditText: EditText
     lateinit var filename: String
+    var searchResults = ArrayList<ClothesItem>()
      var catagoryIdTmp = 0
      var itemIdTmp = 0
 
@@ -72,6 +75,7 @@ class MainActivity : AppCompatActivity() {
             (today.adapter as ItemAdapter).notifyDataChange(i)
         }
 
+        searchEditText.text.clear()
         saveData.savedCategories.removeAt(index)
         (categories.adapter as CategoryAdapter).notifyDataChange(index)
     }
@@ -113,6 +117,7 @@ class MainActivity : AppCompatActivity() {
             }
             index++
         }
+        searchEditText.text.clear()
         if (found) {
             saveData.activeItems.removeAt(index)
             (today.adapter as ItemAdapter).notifyDataChange(index)
@@ -177,6 +182,17 @@ class MainActivity : AppCompatActivity() {
                 )
                 saveData.savedCategories.add(cat)
                 (categories.adapter as CategoryAdapter).notifyDataChange(-1)
+            } else {
+                var error = ""
+                if (name.isNullOrEmpty()) error = "Your category couldn't be added because the name was missing"
+                if (wears.isNullOrEmpty()) error = "Your category couldn't be added because the desired wears was missing"
+                if (wears.isNullOrEmpty()) error = "Your category couldn't be added because the desired wears wasn't a number"
+                AlertDialog.Builder(this)
+                    .setTitle("Error")
+                    .setMessage(error)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setPositiveButton(android.R.string.ok,null)
+                    .show()
             }
 
             holder.findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.camera)
@@ -246,6 +262,17 @@ class MainActivity : AppCompatActivity() {
                 )
                 catagory.items.add(0, item)
                 (categories.adapter as CategoryAdapter).notifyDataChange(-1)
+            } else {
+                var error = ""
+                if (name.isNullOrEmpty()) error = "Your item couldn't be added because the name was missing"
+                if (wears.isNullOrEmpty()) error = "Your item couldn't be added because the desired wears was missing"
+                if (wears.isNullOrEmpty()) error = "Your item couldn't be added because the desired wears wasn't a number"
+                AlertDialog.Builder(this)
+                    .setTitle("Error")
+                    .setMessage(error)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setPositiveButton(android.R.string.ok,null)
+                    .show()
             }
 
             holder.findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.camera)
@@ -272,6 +299,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        //get saved data
         try {
             val fis2: FileInputStream = openFileInput("data")
             val is2 = ObjectInputStream(fis2)
@@ -283,12 +311,14 @@ class MainActivity : AppCompatActivity() {
             if (e is FileNotFoundException) saveData = SaveData(ArrayList(), ArrayList())
         }
 
+        //handling for main clothing list
         val adapter = CategoryAdapter(this, saveData.savedCategories, categoryDeleteListener, itemWearListener, itemDeleteListener, addCategoryListener, addItemListener)
         categories = findViewById(R.id.categoryList)
         val linearLayoutManager =  LinearLayoutManager(this)
         categories.layoutManager = linearLayoutManager
         categories.adapter = adapter
 
+        //handling for todays outfit preview
         val adapter2 = ItemAdapter(this, saveData.activeItems, removeActiveItem)
         today = findViewById(R.id.outfitPreview)
         val linearLayoutManager2 =  LinearLayoutManager(this)
@@ -296,12 +326,15 @@ class MainActivity : AppCompatActivity() {
         today.layoutManager = linearLayoutManager2
         today.adapter = adapter2
 
+        //handling for clear day button
         findViewById<Button>(R.id.cancelButton).setOnClickListener {
             saveData.activeItems.clear()
             (today.adapter as ItemAdapter).notifyDataChange(-1)
         }
 
+        //handling for end day button
         findViewById<Button>(R.id.endButton).setOnClickListener {
+            vibratePhone()
             val washData = (today.adapter as ItemAdapter).washItems
             for (i in saveData.activeItems.indices) {
                 lateinit var curItem: ClothesItem
@@ -318,20 +351,80 @@ class MainActivity : AppCompatActivity() {
             }
 
             saveData.activeItems.clear()
+            searchEditText.text.clear()
             (today.adapter as ItemAdapter).notifyDataChange(-1)
             (categories.adapter as CategoryAdapter).notifyDataChange(-1)
 
         }
 
+        //handling for icon for toggling edit mode
         findViewById<View>(R.id.editImage).setOnClickListener {
             (categories.adapter as CategoryAdapter).toggleMode()
             if ((categories.adapter as CategoryAdapter).deleteMode) {
+                (categories.adapter as CategoryAdapter).changedCategories.clear()
+                (categories.adapter as CategoryAdapter).changedItems.clear()
                 findViewById<ImageView>(R.id.editImage).setColorFilter(R.color.red)
             } else {
                 findViewById<ImageView>(R.id.editImage).colorFilter = null
+                (categories.adapter as CategoryAdapter).changedCategories.let {
+                    for (category in saveData.savedCategories) {
+                        if (it.containsKey(category.id)) {
+                            category.name = it[category.id]?.name ?: category.name
+                            category.desiredWorn = it[category.id]?.desiredWorn ?: category.desiredWorn
+
+                        }
+                    }
+                    it.clear()
+                }
+
+                (categories.adapter as CategoryAdapter).changedItems.let {
+                    for (category in saveData.savedCategories) {
+                        for (item in category.items) {
+                            if (it.containsKey(category.id.toString() + "-" + item.id)) {
+                                item.name = it[category.id.toString() + "-" + item.id]?.name ?: item.name
+                                item.maxWorn = it[category.id.toString() + "-" + item.id]?.maxWorn ?: item.maxWorn
+
+                            }
+                        }
+                    }
+                    it.clear()
+                }
             }
         }
 
+        //handling for search box
+        searchEditText = findViewById<EditText>(R.id.searchText)
+        val searchResult = findViewById<RecyclerView>(R.id.searchResult)
+        val adapter3 = SearchAdapter(this, searchResults, itemWearListener)
+        val linearLayoutManager3 =  LinearLayoutManager(this)
+        findViewById<ImageView>(R.id.clearInputButton).setOnClickListener {
+            searchEditText.text.clear()
+        }
+        linearLayoutManager3.orientation = RecyclerView.HORIZONTAL
+        searchResult.layoutManager = linearLayoutManager3
+        searchResult.adapter = adapter3
+        searchEditText.addTextChangedListener(object : TextWatcher {
+
+            override fun afterTextChanged(s: Editable) {
+                if (s.isNullOrEmpty()) {
+                    searchResult.visibility = View.GONE
+                    return
+                }
+                searchResult.visibility = View.VISIBLE
+                val searchTerm = s.toString()
+                searchResults.clear()
+                for (cat in saveData.savedCategories){
+                    for (item in cat.items) {
+                        if (item.name.contains(searchTerm, true)) searchResults.add(item)
+                    }
+                }
+                searchResult.adapter?.notifyDataSetChanged()
+            }
+
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
+        })
     }
 
     override fun onStop() {
@@ -414,6 +507,16 @@ class MainActivity : AppCompatActivity() {
             storageDir /* directory */
         ).apply {
             filename = absolutePath
+        }
+    }
+
+
+    fun vibratePhone() {
+        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        if (Build.VERSION.SDK_INT >= 26) {
+            vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            vibrator.vibrate(100)
         }
     }
 }
