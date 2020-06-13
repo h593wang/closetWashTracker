@@ -5,6 +5,10 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import androidx.exifinterface.media.ExifInterface
+import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
 import android.text.Editable
@@ -17,31 +21,32 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.squareup.picasso.Picasso
 import java.io.*
-import java.text.SimpleDateFormat
-import java.util.*
-import java.util.concurrent.Executors
-import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
+import kotlin.math.min
 
 
 class MainActivity : AppCompatActivity() {
 
-    lateinit var saveData: SaveData
-    lateinit var categories: RecyclerView
-    lateinit var today: RecyclerView
-    lateinit var imageViewPreview: ImageView
-    lateinit var searchEditText: EditText
-    lateinit var filename: String
-    var searchResults = ArrayList<ClothesItem>()
-     var catagoryIdTmp = 0
-     var itemIdTmp = 0
+    private lateinit var saveData: SaveData
+    private lateinit var categories: RecyclerView
+    private lateinit var today: RecyclerView
+    private lateinit var imageViewPreview: ImageView
+    private lateinit var searchEditText: EditText
+    private lateinit var bitmap: Bitmap
+    private var filename = ""
+    private var searchResults = ArrayList<ClothesItem>()
+    private var inAddItem = false
+    private var catIdGlobal = 0
+    private var inAddCat = false
 
-    val categoryDeleteListener = View.OnClickListener {
+    //click listener for when category delete is clicked
+    private val categoryDeleteListener = View.OnClickListener {
+        //get category id from tag
         val id = it.tag as Int
+        //show a confirmation dialog
         AlertDialog.Builder(this)
             .setTitle("Confirmation")
             .setMessage("Do you really want to delete this category?")
@@ -53,47 +58,61 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton(android.R.string.no, null).show()
     }
 
-    fun handleCategoryDelete(id: Int) {
-        var index = 0
-        for (cat in saveData.savedCategories){
-            if (cat.id == id) {
-                break
-            }
-            index++
-        }
+    //handler function for deleting a category
+    private fun handleCategoryDelete(id: Int) {
+        //get index of category in saveData from id
+        val index = saveData.savedCategories.indexOfFirst { it.id == id }
 
+        //search for all actively worn items belonging to that category
         val list = ArrayList<Int>()
         for (i in saveData.activeItems.indices) {
             if (saveData.activeItems[i].categoryId == id) {
                 list.add(i)
             }
         }
+        //sort and reverse to be in descending indexes for easy remove
         list.sort()
         list.reverse()
+        //remove from back
         for (i in list) {
             saveData.activeItems.removeAt(i)
-            (today.adapter as ItemAdapter).notifyDataChange(i)
+            today.adapter?.notifyDataSetChanged()
         }
 
+        //clear search text since search result might contain items from category
         searchEditText.text.clear()
+        //delete image from files
+        for (item in saveData.savedCategories[index].items) {
+            val delete = File(item.photoPath)
+            if (delete.exists()) {
+                (delete.delete())
+            }
+        }
+        //remove category from save data
         saveData.savedCategories.removeAt(index)
-        (categories.adapter as CategoryAdapter).notifyDataChange(index)
+        //notify the entry has been removed
+        categories.adapter?.notifyDataSetChanged()
     }
 
-    val itemDeleteListener = View.OnClickListener {
-        val Id = it.tag as ItemId
+    //click listener for when a item delete is clicked
+    private val itemDeleteListener = View.OnClickListener {
+        //get item id from tag
+        val id = it.tag as ItemId
+        //show confirmation dialog
         AlertDialog.Builder(this)
             .setTitle("Confirmation")
             .setMessage("Do you really want to delete this item?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes
             ) { _, _ ->
-                handleItemDelete(Id)
+                handleItemDelete(id)
             }
             .setNegativeButton(android.R.string.no, null).show()
     }
 
-    fun handleItemDelete(id: ItemId) {
+    //handler function for deleting an item
+    private fun handleItemDelete(id: ItemId) {
+        //remove item from save data, notify adpater of data change
         for (cat in saveData.savedCategories) {
             if (cat.id == id.catId) {
                 var index = 0
@@ -103,11 +122,17 @@ class MainActivity : AppCompatActivity() {
                     }
                     index++
                 }
+                //delete image from files
+                val delete = File(cat.items[index].photoPath)
+                if (delete.exists()) {
+                    (delete.delete())
+                }
                 cat.items.removeAt(index)
-                (categories.adapter as CategoryAdapter).notifyDataChange(-1)
+                categories.adapter?.notifyDataSetChanged()
             }
         }
 
+        //search for item in actively wearing items
         var index = 0
         var found = false
         for (item in saveData.activeItems) {
@@ -117,16 +142,22 @@ class MainActivity : AppCompatActivity() {
             }
             index++
         }
-        searchEditText.text.clear()
+        //if found, remove from wearing items
         if (found) {
             saveData.activeItems.removeAt(index)
-            (today.adapter as ItemAdapter).notifyDataChange(index)
+            today.adapter?.notifyDataSetChanged()
         }
+
+        //clear search text since it may contain item
+        searchEditText.text.clear()
     }
 
-    val itemWearListener = View.OnClickListener {
+    //click listener for when an item wear button is clicked
+    private val itemWearListener = View.OnClickListener {
+        //get item id from tag
         val itemId = it.tag as ItemId
         lateinit var item: ClothesItem
+        //get item from save data that matched id
         for (cata in saveData.savedCategories) {
             if (cata.id == itemId.catId) {
                 for (i in cata.items) {
@@ -135,19 +166,24 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        //check for duplicates
         var add = true
         for (i in saveData.activeItems) {
             if (i.id == item.id && i.categoryId == item.categoryId) add = false
         }
+        //add to active items and notify adapter
         if (add) {
             saveData.activeItems.add(item)
-            (today.adapter as ItemAdapter).notifyDataChange(-1)
+            today.adapter?.notifyDataSetChanged()
         }
     }
 
-    val addCategoryListener = View.OnClickListener {
+    //click listener for when the add category button is clicked
+    private val addCategoryListener = View.OnClickListener {
+        inAddCat = true
+        //get a valid category id
         var validCategoryID = 1
-        var usedIDs = HashSet<Int>()
+        val usedIDs = HashSet<Int>()
         for (cata in saveData.savedCategories) {
             usedIDs.add(cata.id)
         }
@@ -156,13 +192,16 @@ class MainActivity : AppCompatActivity() {
             else break
         }
 
+        //show add category dialog box
         val holder = findViewById<View>(R.id.addHolder)
         holder.visibility = View.VISIBLE
-        holder.findViewById<TextView>(R.id.addTitle).text = "Add Category"
+        holder.findViewById<TextView>(R.id.addTitle).setText(R.string.add_category)
         holder.findViewById<View>(R.id.photoPreview).visibility = View.GONE
         holder.findViewById<View>(R.id.takePhoto).visibility = View.GONE
-        holder.findViewById<EditText>(R.id.wears).hint = "Default wears before wash"
+        holder.findViewById<EditText>(R.id.wears).setHint(R.string.default_wears_before_wash)
         holder.findViewById<Button>(R.id.buttonCancel).setOnClickListener {
+            //add cancelled, revert to default state
+            inAddCat = false
             hideKeyboard(this)
             holder.findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.camera)
             holder.findViewById<EditText>(R.id.wears).setText("")
@@ -170,23 +209,34 @@ class MainActivity : AppCompatActivity() {
             holder.visibility = View.GONE
         }
         holder.findViewById<Button>(R.id.doneAdding).setOnClickListener {
+            inAddCat = false
+            //adding, hide keyboard
             hideKeyboard(this)
             val name = holder.findViewById<EditText>(R.id.name).text.toString()
             val wears = holder.findViewById<EditText>(R.id.wears).text.toString()
-            if (!(name.isNullOrEmpty() || wears.isNullOrEmpty() || wears.toIntOrNull() == null)) {
+            if (!(name.isEmpty() || wears.isEmpty() || wears.toIntOrNull() == null || wears.toInt() < 1)) {
+                //if fields are valid, create category and add to saveData
                 val cat = ClothesCategory(
                     validCategoryID,
                     wears.toInt(),
                     name,
-                    ArrayList()
+                    ArrayList(),
+                    false
                 )
                 saveData.savedCategories.add(cat)
-                (categories.adapter as CategoryAdapter).notifyDataChange(-1)
+                //notify adapter of new category
+                categories.adapter?.notifyDataSetChanged()
             } else {
+                //if fields are not valid
                 var error = ""
-                if (name.isNullOrEmpty()) error = "Your category couldn't be added because the name was missing"
-                if (wears.isNullOrEmpty()) error = "Your category couldn't be added because the desired wears was missing"
-                if (wears.isNullOrEmpty()) error = "Your category couldn't be added because the desired wears wasn't a number"
+                //generate appropriate error message
+                when {
+                    name.isEmpty() -> error = "Your category couldn't be added because the name was missing"
+                    wears.isEmpty() -> error = "Your category couldn't be added because the desired wears was missing"
+                    wears.toIntOrNull() == null -> error = "Your category couldn't be added because the desired wears wasn't a number"
+                    wears.toInt() < 1 -> error = "Invalid max wears"
+                }
+                //and show dialog
                 AlertDialog.Builder(this)
                     .setTitle("Error")
                     .setMessage(error)
@@ -194,31 +244,37 @@ class MainActivity : AppCompatActivity() {
                     .setPositiveButton(android.R.string.ok,null)
                     .show()
             }
-
+            //revert to default state on both success and failure
             holder.findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.camera)
             holder.findViewById<EditText>(R.id.wears).setText("")
             holder.findViewById<EditText>(R.id.name).setText("")
             holder.visibility = View.GONE
         }
-
     }
 
-    val addItemListener = View.OnClickListener {
-        //get catagory from click
-        val catId = it.tag
-        var catagory = saveData.savedCategories[0]
-        lateinit var itemList: ArrayList<ClothesItem>
-        for (cata in saveData.savedCategories) {
-            if (cata.id == catId) {
-                catagory = cata
-                itemList = cata.items
+    //click lister for when the add item button is clicked
+    private val addItemListener = View.OnClickListener {
+        //get category id from click
+        val catId = it.tag as Int
+        catIdGlobal = catId
+        addItemHandler(catId)
+    }
+
+    //wrapper function for add item
+    private fun addItemHandler(catId: Int) {
+        inAddItem = true
+        //get category from save data with id
+        var category = saveData.savedCategories[0]
+        for (cat in saveData.savedCategories) {
+            if (cat.id == catId) {
+                category = cat
                 break
             }
         }
         //get valid id for item
         var validItemId = 1
-        var usedIDs = HashSet<Int>()
-        for (item in itemList) {
+        val usedIDs = HashSet<Int>()
+        for (item in category.items) {
             usedIDs.add(item.id)
         }
         while(true) {
@@ -226,47 +282,72 @@ class MainActivity : AppCompatActivity() {
             else break
         }
 
-        filename = catagory.id.toString() + "-" + validItemId
         val holder = findViewById<View>(R.id.addHolder)
-        holder.visibility = View.VISIBLE
-        holder.findViewById<TextView>(R.id.addTitle).text = "Add Item"
+        //  the final filename will be stored in filenameAbs
+        //  the final image will be automatically added to imageViewPreview
         imageViewPreview = holder.findViewById(R.id.photoPreview)
-        imageViewPreview.visibility = View.VISIBLE
+
+        //entry point for take picture intent
         holder.findViewById<View>(R.id.takePhoto).visibility = View.VISIBLE
         holder.findViewById<View>(R.id.takePhoto).setOnClickListener {
             dispatchTakePictureIntent()
         }
-        holder.findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.camera)
-        catagoryIdTmp = catagory.id
-        itemIdTmp = validItemId
-        holder.findViewById<EditText>(R.id.wears).hint = "Default for Catagory is " + catagory.desiredWorn + "    "
+
+        //make create item dialog visible
+        holder.visibility = View.VISIBLE
+        holder.findViewById<TextView>(R.id.addTitle).setText(R.string.add_item)
+        imageViewPreview.visibility = View.VISIBLE
+        imageViewPreview.setImageResource(R.drawable.camera)
+        holder.findViewById<EditText>(R.id.wears).hint = "Default for Catagory is " + category.desiredWorn + "    "
         holder.findViewById<Button>(R.id.buttonCancel).setOnClickListener {
+            inAddItem = false
             hideKeyboard(this)
-            holder.findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.camera)
+            //add cancelled, revert to default state
+            imageViewPreview.setImageResource(R.drawable.camera)
             holder.findViewById<EditText>(R.id.wears).setText("")
             holder.findViewById<EditText>(R.id.name).setText("")
             holder.visibility = View.GONE
         }
+
         holder.findViewById<Button>(R.id.doneAdding).setOnClickListener {
+            inAddItem = false
+            //adding complete, hide keyboard
             hideKeyboard(this)
+
+            //save image to file
+            val filenameAbs = createImageFile("$catId-$validItemId").absolutePath
+            try {
+                val out = FileOutputStream(filenameAbs)
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out) // bmp is your Bitmap instance
+            } catch (e: java.lang.Exception) {
+                e.printStackTrace()
+            }
+
             val name = holder.findViewById<EditText>(R.id.name).text.toString()
             val wears = holder.findViewById<EditText>(R.id.wears).text.toString()
-            if (!(name.isNullOrEmpty() || wears.isNullOrEmpty() || wears.toIntOrNull() == null)) {
+            if (!(name.isEmpty() || wears.isEmpty() || wears.toIntOrNull() == null || wears.toInt() < 1)) {
+                //if entries are valid, create item and add to savedata
                 val item = ClothesItem(
                     validItemId,
-                    catagory.id,
+                    category.id,
                     0,
                     wears.toInt(),
                     name,
-                    filename
+                    filenameAbs,
+                    false
                 )
-                catagory.items.add(0, item)
-                (categories.adapter as CategoryAdapter).notifyDataChange(-1)
+                category.items.add(item)
+                //notify adapter of new item
+                categories.adapter?.notifyDataSetChanged()
             } else {
+                //if entries are invalid, generate and show appropriate error message
                 var error = ""
-                if (name.isNullOrEmpty()) error = "Your item couldn't be added because the name was missing"
-                if (wears.isNullOrEmpty()) error = "Your item couldn't be added because the desired wears was missing"
-                if (wears.isNullOrEmpty()) error = "Your item couldn't be added because the desired wears wasn't a number"
+                when {
+                    name.isEmpty() -> error = "Your item couldn't be added because the name was missing"
+                    wears.isEmpty() -> error = "Your item couldn't be added because the desired wears was missing"
+                    wears.toIntOrNull() == null -> error = "Your item couldn't be added because the desired wears wasn't a number"
+                    wears.toInt() < 1 -> error = "Invalid max wears"
+                }
                 AlertDialog.Builder(this)
                     .setTitle("Error")
                     .setMessage(error)
@@ -275,6 +356,7 @@ class MainActivity : AppCompatActivity() {
                     .show()
             }
 
+            //revert dialog to default state regardless of success of failure
             holder.findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.camera)
             holder.findViewById<EditText>(R.id.wears).setText("")
             holder.findViewById<EditText>(R.id.name).setText("")
@@ -282,13 +364,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    val removeActiveItem = View.OnClickListener {
+    //click listener for when an item is removed from the actively worn
+    private val removeActiveItem = View.OnClickListener {
+        //get id
         val itemId = it.tag as ItemId
         var index = 0
+        //find item and remove, notify adapter
         for (i in saveData.activeItems) {
             if (i.id == itemId.itemId && i.categoryId == i.categoryId) {
                 saveData.activeItems.removeAt(index)
-                (today.adapter as ItemAdapter).notifyDataChange(index)
+                today.adapter?.notifyDataSetChanged()
                 break
             }
             index++
@@ -300,26 +385,59 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         //get saved data
-        try {
-            val fis2: FileInputStream = openFileInput("data")
-            val is2 = ObjectInputStream(fis2)
-            saveData = is2.readObject() as SaveData
-            is2.close()
-            fis2.close()
-
-        } catch (e: Exception) {
-            if (e is FileNotFoundException) saveData = SaveData(ArrayList(), ArrayList())
+        if (File(filesDir.absolutePath+"/data").exists()) {
+            try {
+                val fis2: FileInputStream = openFileInput("data")
+                val is2 = ObjectInputStream(fis2)
+                saveData = is2.readObject() as SaveData
+                is2.close()
+                fis2.close()
+                //create backup
+                val fos: FileOutputStream =
+                    applicationContext.openFileOutput("data_backup", Context.MODE_PRIVATE)
+                val os = ObjectOutputStream(fos)
+                os.writeObject(saveData)
+                os.flush()
+                os.close()
+                fos.close()
+            } catch (e: Exception) {
+                //if file doesn't exist, create initial value
+                if (e is FileNotFoundException) saveData = SaveData(ArrayList(), ArrayList())
+                else {
+                    //data corrupted, load backup
+                    val fis2: FileInputStream = openFileInput("data_backup")
+                    val is2 = ObjectInputStream(fis2)
+                    saveData = is2.readObject() as SaveData
+                    is2.close()
+                    fis2.close()
+                    //notify user that backup had to be used
+                    AlertDialog.Builder(this)
+                        .setTitle("Error")
+                        .setMessage("Unable to lead data. Backup loade")
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                }
+            }
+        } else {
+            //if the file doesnt exist, then it must be a new user
+            //show welcome fragment
+            val fragmentManager = supportFragmentManager
+            val fragment = OnboardingFragment()
+            fragment.show(fragmentManager, "")
+            //create default saveData instance
+            saveData = SaveData(ArrayList(), ArrayList())
         }
 
-        //handling for main clothing list
+        //handling for main clothing list recyclerview
         val adapter = CategoryAdapter(this, saveData.savedCategories, categoryDeleteListener, itemWearListener, itemDeleteListener, addCategoryListener, addItemListener)
         categories = findViewById(R.id.categoryList)
         val linearLayoutManager =  LinearLayoutManager(this)
         categories.layoutManager = linearLayoutManager
         categories.adapter = adapter
 
-        //handling for todays outfit preview
-        val adapter2 = ItemAdapter(this, saveData.activeItems, removeActiveItem)
+        //handling for todays outfit preview recyclerview
+        val adapter2 = PreviewAdapter(this, saveData.activeItems, removeActiveItem)
         today = findViewById(R.id.outfitPreview)
         val linearLayoutManager2 =  LinearLayoutManager(this)
         linearLayoutManager2.orientation = RecyclerView.HORIZONTAL
@@ -329,62 +447,56 @@ class MainActivity : AppCompatActivity() {
         //handling for clear day button
         findViewById<Button>(R.id.cancelButton).setOnClickListener {
             saveData.activeItems.clear()
-            (today.adapter as ItemAdapter).notifyDataChange(-1)
+            today.adapter?.notifyDataSetChanged()
         }
 
         //handling for end day button
         findViewById<Button>(R.id.endButton).setOnClickListener {
-            vibratePhone()
-            val washData = (today.adapter as ItemAdapter).washItems
-            for (i in saveData.activeItems.indices) {
-                lateinit var curItem: ClothesItem
-                for (cata in saveData.savedCategories) {
-                    if (cata.id == saveData.activeItems[i].categoryId) {
-                        for (item in cata.items) {
-                            if (item.id == saveData.activeItems[i].id) curItem = item
+            if (saveData.activeItems.size != 0) {
+                //for every item worn today...
+                for (i in saveData.activeItems.indices) {
+                    //find them in save data and...
+                    for (cata in saveData.savedCategories.filter { it.id == saveData.activeItems[i].categoryId }) {
+                        for (item in cata.items.filter { it.id == saveData.activeItems[i].id }) {
+                            //update their worn data
+                            if (item.wash) item.worn = 0
+                            else item.worn += 1
                         }
                     }
                 }
-
-                if (washData[i]) curItem.worn = 0
-                else  curItem.worn += 1
+                //clear active items and search text, notify adapters that data has been updated
+                saveData.activeItems.clear()
+                searchEditText.text.clear()
+                today.adapter?.notifyDataSetChanged()
+                categories.adapter?.notifyDataSetChanged()
             }
-
-            saveData.activeItems.clear()
-            searchEditText.text.clear()
-            (today.adapter as ItemAdapter).notifyDataChange(-1)
-            (categories.adapter as CategoryAdapter).notifyDataChange(-1)
-
         }
 
         //handling for icon for toggling edit mode
         findViewById<View>(R.id.editImage).setOnClickListener {
             (categories.adapter as CategoryAdapter).toggleMode()
-            if ((categories.adapter as CategoryAdapter).deleteMode) {
-                (categories.adapter as CategoryAdapter).changedCategories.clear()
-                (categories.adapter as CategoryAdapter).changedItems.clear()
+            if ((categories.adapter as CategoryAdapter).editMode) {
+                //clear data to be default
+                (application as ApplicationBase).changedCategories.clear()
+                (application as ApplicationBase).changedItems.clear()
                 findViewById<ImageView>(R.id.editImage).setColorFilter(R.color.red)
             } else {
                 findViewById<ImageView>(R.id.editImage).colorFilter = null
-                (categories.adapter as CategoryAdapter).changedCategories.let {
-                    for (category in saveData.savedCategories) {
-                        if (it.containsKey(category.id)) {
-                            category.name = it[category.id]?.name ?: category.name
-                            category.desiredWorn = it[category.id]?.desiredWorn ?: category.desiredWorn
-
-                        }
+                //get changed categories and save changes
+                (application as ApplicationBase).changedCategories.let {
+                    for (category in saveData.savedCategories.filter {cat -> it.containsKey(cat.id)}) {
+                        category.name = it[category.id]?.name ?: category.name
+                        category.desiredWorn = it[category.id]?.desiredWorn ?: category.desiredWorn
                     }
                     it.clear()
                 }
 
-                (categories.adapter as CategoryAdapter).changedItems.let {
+                //get changed items and save changes
+                (application as ApplicationBase).changedItems.let {
                     for (category in saveData.savedCategories) {
-                        for (item in category.items) {
-                            if (it.containsKey(category.id.toString() + "-" + item.id)) {
-                                item.name = it[category.id.toString() + "-" + item.id]?.name ?: item.name
-                                item.maxWorn = it[category.id.toString() + "-" + item.id]?.maxWorn ?: item.maxWorn
-
-                            }
+                        for (item in category.items.filter {item -> it.containsKey(category.id.toString() + "-" + item.id)}) {
+                            item.name = it[category.id.toString() + "-" + item.id]?.name ?: item.name
+                            item.maxWorn = it[category.id.toString() + "-" + item.id]?.maxWorn ?: item.maxWorn
                         }
                     }
                     it.clear()
@@ -393,42 +505,46 @@ class MainActivity : AppCompatActivity() {
         }
 
         //handling for search box
-        searchEditText = findViewById<EditText>(R.id.searchText)
+        searchEditText = findViewById(R.id.searchText)
         val searchResult = findViewById<RecyclerView>(R.id.searchResult)
         val adapter3 = SearchAdapter(this, searchResults, itemWearListener)
         val linearLayoutManager3 =  LinearLayoutManager(this)
         findViewById<ImageView>(R.id.clearInputButton).setOnClickListener {
             searchEditText.text.clear()
         }
+        //setting up adapter
         linearLayoutManager3.orientation = RecyclerView.HORIZONTAL
         searchResult.layoutManager = linearLayoutManager3
         searchResult.adapter = adapter3
+        //when texts change
         searchEditText.addTextChangedListener(object : TextWatcher {
-
             override fun afterTextChanged(s: Editable) {
-                if (s.isNullOrEmpty()) {
+                //hide search result if search term is empty
+                if (s.isEmpty()) {
                     searchResult.visibility = View.GONE
                     return
                 }
                 searchResult.visibility = View.VISIBLE
                 val searchTerm = s.toString()
                 searchResults.clear()
+                //search for items with matching names
                 for (cat in saveData.savedCategories){
                     for (item in cat.items) {
                         if (item.name.contains(searchTerm, true)) searchResults.add(item)
                     }
                 }
+                //notify adapter of new data
                 searchResult.adapter?.notifyDataSetChanged()
             }
 
             override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
-
             override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
         })
     }
 
     override fun onStop() {
-        val fos: FileOutputStream = getApplicationContext().openFileOutput("data", Context.MODE_PRIVATE)
+        //save data to file
+        val fos: FileOutputStream = applicationContext.openFileOutput("data", Context.MODE_PRIVATE)
         val os = ObjectOutputStream(fos)
         os.writeObject(saveData)
         os.flush()
@@ -437,15 +553,38 @@ class MainActivity : AppCompatActivity() {
         super.onStop()
     }
 
+    //handle restoring add item/category on app killed
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("IN_ADD_ITEM", inAddItem)
+        outState.putBoolean("IN_ADD_CAT", inAddCat)
+        outState.putInt("CAT_ID", catIdGlobal)
+        outState.putString("FILENAME", filename)
+        super.onSaveInstanceState(outState)
+    }
+
+    //handle restoring add item/category on app killed
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        if (savedInstanceState.getBoolean("IN_ADD_ITEM"))
+            addItemHandler(savedInstanceState.getInt("CAT_ID"))
+        if (savedInstanceState.getBoolean("IN_ADD_CAT"))
+            addCategoryListener.onClick(View(this))
+        savedInstanceState.getString("FILENAME")?.let {filename = it}
+        super.onRestoreInstanceState(savedInstanceState)
+    }
+
     override fun onBackPressed() {
+        //if add view is visible(active) hide them on back pressed
         if (findViewById<View>(R.id.addHolder).visibility == View.VISIBLE) {
+            inAddItem = false
+            inAddCat = false
             findViewById<View>(R.id.addHolder).visibility = View.GONE
             return
         }
         super.onBackPressed()
     }
 
-    fun hideKeyboard(activity: Activity) {
+    //hide keyboard function for add item/category dialog
+    private fun hideKeyboard(activity: Activity) {
         val imm: InputMethodManager =
             activity.getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
         //Find the currently focused view, so we can grab the correct window token from it.
@@ -457,8 +596,32 @@ class MainActivity : AppCompatActivity() {
         imm.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
-    val REQUEST_IMAGE_CAPTURE = 1
-
+    private fun dispatchTakePictureIntent() {
+        Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
+            // Ensure that there's a camera activity to handle the intent
+            takePictureIntent.resolveActivity(packageManager)?.also {
+                // Create the File where the photo should go
+                val photoFile: File? = try {
+                    createImageFile("tmp")
+                } catch (ex: IOException) {
+                    // Error occurred while creating the File
+                    null
+                }
+                // Continue only if the File was successfully created
+                photoFile?.also {
+                    val photoURI: Uri = FileProvider.getUriForFile(
+                        this,
+                        "com.palepeak.closet_tracker",
+                        it
+                    )
+                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
+                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE)
+                }
+            }
+        }
+    }
+    /*
+    //create take picture intent to get picture from camera
     private fun dispatchTakePictureIntent() {
         Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
             takePictureIntent.resolveActivity(packageManager)?.also {
@@ -467,10 +630,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+     */
+
+    //when the data is returned
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            val imageBitmap = data?.extras?.get("data") as Bitmap
-            val minLength = Math.min(imageBitmap.width, imageBitmap.height)
+            //get bitmap
+            val imageBitmap = BitmapFactory.decodeFile(filename)
+            //calculate dimensions for square aspect ratio
+            val minLength = min(imageBitmap.width, imageBitmap.height)
             var x = 0
             var y = 0
             var croppedHeight = imageBitmap.height
@@ -482,25 +650,45 @@ class MainActivity : AppCompatActivity() {
                 x = (croppedWidth - minLength)/2
                 croppedWidth = minLength
             }
+            //crop bitmap
             val croppedBitmap = Bitmap.createBitmap(imageBitmap, x, y, croppedWidth, croppedHeight)
-            val px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100f, resources.displayMetrics)
-            val resizedBitmap = Bitmap.createScaledBitmap(croppedBitmap, px.toInt(), px.toInt(), false)
-            createImageFile(filename)
-            try {
-                val out = FileOutputStream(filename)
-                resizedBitmap.compress(Bitmap.CompressFormat.PNG, 100, out) // bmp is your Bitmap instance
-            } catch (e: java.lang.Exception) {
-                e.printStackTrace();
+
+            //get rotation data of image
+            val exif = ExifInterface(filename)
+            //rotate accordingly
+            val angle = when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                else -> 0f
             }
-            Picasso.Builder(this).executor(Executors.newSingleThreadExecutor()).build().load("file://"+filename).into(imageViewPreview)
+            val matrix = Matrix()
+            matrix.postRotate(angle)
+            val rotatedBitmap = when (angle) {
+                0f -> croppedBitmap
+                else -> Bitmap.createBitmap(croppedBitmap, 0, 0, croppedBitmap.width, croppedBitmap.height, matrix, true)
+            }
+
+            //scale down the cropped bitmap to be 100dp
+            val px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100f, resources.displayMetrics)
+            bitmap = Bitmap.createScaledBitmap(rotatedBitmap, px.toInt(), px.toInt(), false)
+
+            //delete tmp file used to get exif data
+            val file = File(filename)
+            file.delete()
+
+            //save bitmap to the imageview
+            imageViewPreview.setImageBitmap(bitmap)
+            //add item will get bitmap from the global bitmap variable
         }
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
+    //get unique image file name
     @Throws(IOException::class)
     private fun createImageFile(file: String): File {
         // Create an image file name
-        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
-        val storageDir: File = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
         return File.createTempFile(
             file, /* prefix */
             ".png", /* suffix */
@@ -510,13 +698,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    fun vibratePhone() {
-        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        if (Build.VERSION.SDK_INT >= 26) {
-            vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            vibrator.vibrate(100)
-        }
+    //companion object for request ID
+    companion object {
+        const val REQUEST_IMAGE_CAPTURE = 1
     }
 }

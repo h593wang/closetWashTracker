@@ -1,3 +1,30 @@
 <resources>
     <string name="app_name">Closet_Tracker</string>
+    <string name="add_category">Add Category</string>
+    <string name="default_wears_before_wash">"Default wears before wash"</string>
+    <string name="add_item">Add Item</string>
+    <string name="outfit_preview_placeholder">Nothing added to today\'s outfit</string>
+    <string name="wash_item">Wash Item?</string>
+    <string name="no_results_found">No Results Found</string>
+    <string name="worn_max">Worn: %d/%d</string>
+    <string name="worn">Worn: %d/</string>
+    <string name="expand_category">Expand Category</string>
+    <string name="default_wears">Default Wears:\u0020</string>
+    <string name="wear">Wear</string>
+    <string name="remove">Remove</string>
+    <string name="number_of_items">Number of items: %d</string>
+    <string name="item_preview">item preview</string>
+    <string name="end_day">End Day</string>
+    <string name="clear_selection">Clear Selection</string>
+    <string name="wardrobe">Wardrobe</string>
+    <string name="edit">edit</string>
+    <string name="today_s_outfit">Today\'s Outfit</string>
+    <string name="search">search</string>
+    <string name="clear_search">clear search</string>
+    <string name="take_photo">Take Photo</string>
+    <string name="name">Name</string>
+    <string name="desired_wears">Desired Wears</string>
+    <string name="add">Add</string>
+    <string name="welcome_1">ggggg</string>
+    <string name="dismiss">Dismiss</string>
 </resources>

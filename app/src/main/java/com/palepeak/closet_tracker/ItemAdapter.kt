@@ -1,97 +1,163 @@
 package com.palepeak.closet_tracker
 
 import android.app.Activity
-import android.graphics.Color
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CheckBox
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.squareup.picasso.Picasso
-import java.util.*
 import java.util.concurrent.Executors
+import kotlin.collections.ArrayList
 
-class ItemAdapter(private var context: Activity, val clothes: ArrayList<ClothesItem>, val deleteListener:View.OnClickListener) : RecyclerView.Adapter<ItemAdapter.ViewHolder>() {
 
-    class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView)
-    var washItems = Array(clothes.size) {false}
+class ItemAdapter(
+    private var context: Activity,
+    private val items: ArrayList<ClothesItem>,
+    private val itemListener: View.OnClickListener,
+    private val itemDeleteListener: View.OnClickListener,
+    private val addItemListener: View.OnClickListener,
+    private val catId: Int,
+    private var editMode: Boolean
+) : RecyclerView.Adapter<ItemAdapter.ViewHolder>() {
 
-    fun notifyDataChange(removedIndex: Int) {
-        val tmpExpanded = Array(clothes.size) {false}
-        var offset = 0
-        for (i in washItems.indices) {
-            if (removedIndex == i) {
-                offset = 1
-            }
-            if (i < tmpExpanded.size) tmpExpanded[i] = washItems[i + offset]
-        }
-        washItems = tmpExpanded
-        notifyDataSetChanged()
+    class ViewHolder(rowView: View, vt: Int) : RecyclerView.ViewHolder(rowView) {
+        val viewType = vt
     }
 
+    //0 == item
+    //1 = add item
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val rowView = LayoutInflater.from(context).inflate(R.layout.list_item_box, parent, false)
-        return ViewHolder(rowView)
+        if (viewType == 1) {
+            val rowView = LayoutInflater.from(context).inflate(R.layout.add_button, parent, false)
+            return ViewHolder(rowView, viewType)
+        }
+        val rowView = LayoutInflater.from(context).inflate(R.layout.list_item, parent, false)
+        return ViewHolder(rowView, viewType)
     }
 
+    //last item is always the add item button
+    override fun getItemViewType(position: Int): Int {
+        if (position == items.size) {
+            return 1
+        }
+        return 0
+    }
+
+    //add one for the add item button
     override fun getItemCount(): Int {
         //if its empty, we still want a placeholder item
-        if (clothes.size == 0) return 1
-        return clothes.size
+        return items.size + 1
     }
 
+    @Suppress("DEPRECATION")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        //handling for placeholder item
-        if (clothes.size == 0) {
-            holder.itemView.findViewById<View>(R.id.itemPreview).visibility = View.GONE
-            holder.itemView.findViewById<TextView>(R.id.itemWashLabel).text = "Nothing added to today's outfit"
-            holder.itemView.findViewById<View>(R.id.itemWashBox).visibility = View.GONE
-            holder.itemView.findViewById<TextView>(R.id.itemName).text = ""
-            holder.itemView.findViewById<TextView>(R.id.itemDelete).visibility = View.GONE
-            holder.itemView.findViewById<TextView>(R.id.itemWashResult).text = ""
-            holder.itemView.isSelected = false
-            holder.itemView.setOnClickListener {  }
+        if (holder.viewType == 1) {
+            //handling for add item button
+            holder.itemView.setBackgroundColor(context.resources.getColor(R.color.itembg))
+            val button = holder.itemView.findViewById<Button>(R.id.button)
+            //save category id as tag for the onClickListener handling
+            button.tag = catId
+            button.setOnClickListener(addItemListener)
+            holder.itemView.setBackgroundResource(R.drawable.rectangle_bottom)
+            button.setText(R.string.add_item)
             return
         }
 
-        //set the selection status based on the selectedSections info
-        val box = holder.itemView.findViewById<CheckBox>(R.id.itemWashBox)
-        box.visibility = View.VISIBLE
-        box.isChecked = washItems[position]
-        box.setOnClickListener {
-            washItems[position] = !washItems[position]
-            var washValue = ""
-            washValue = if (washItems[position]) clothes[position].worn.toString() + "/" + clothes[position].maxWorn + " → 0/" + clothes[position].maxWorn
-            else clothes[position].worn.toString() + "/" + clothes[position].maxWorn + " → " + (clothes[position].worn + 1).toString() + "/" + clothes[position].maxWorn
-            if (!washItems[position] && clothes[position].worn + 1 > clothes[position].maxWorn)
-                holder.itemView.findViewById<TextView>(R.id.itemWashResult).setTextColor(context.resources.getColor(R.color.red))
-            else holder.itemView.findViewById<TextView>(R.id.itemWashResult).setTextColor(context.resources.getColor(R.color.grey))
-            holder.itemView.findViewById<TextView>(R.id.itemWashResult).text = washValue
+        holder.itemView.setBackgroundColor(context.resources.getColor(R.color.itembg))
+        val wash = holder.itemView.findViewById<TextView>(R.id.itemWash)
+        val name = holder.itemView.findViewById<SingleListenEditText>(R.id.itemName)
+        val photo = holder.itemView.findViewById<ImageView>(R.id.itemPreview)
+        val add = holder.itemView.findViewById<Button>(R.id.addButton)
+        val washMax = holder.itemView.findViewById<SingleListenEditText>(R.id.itemWashMax)
+        val item = items[position]
+
+        //remove text change listeners
+        washMax.removeSingleTextChangedListener()
+        name.removeSingleTextChangedListener()
+        //setting the text based on the section info
+        wash.text = context.resources.getString(R.string.worn, item.worn)
+        washMax.setText(item.maxWorn.toString())
+        name.setText(item.name)
+        //set text color based on wash data
+        if (item.worn >= item.maxWorn) {
+            wash.setTextColor(context.resources.getColor(R.color.red))
+            washMax.setTextColor(context.resources.getColor(R.color.red))
+        }
+        else {
+            wash.setTextColor(context.resources.getColor(R.color.grey))
+            washMax.setTextColor(context.resources.getColor(R.color.grey))
         }
 
-        holder.itemView.findViewById<TextView>(R.id.itemWashLabel).text = "Wash Item?"
-        var washValue = ""
-        washValue = if (washItems[position]) clothes[position].worn.toString() + "/" + clothes[position].maxWorn + " → 0/" + clothes[position].maxWorn
-        else clothes[position].worn.toString() + "/" + clothes[position].maxWorn + " → " + (clothes[position].worn + 1).toString() + "/" + clothes[position].maxWorn
-        if (!washItems[position] && clothes[position].worn + 1 > clothes[position].maxWorn)
-            holder.itemView.findViewById<TextView>(R.id.itemWashResult).setTextColor(context.resources.getColor(R.color.red))
-        else holder.itemView.findViewById<TextView>(R.id.itemWashResult).setTextColor(context.resources.getColor(R.color.grey))
-        holder.itemView.findViewById<TextView>(R.id.itemWashResult).text = washValue
+        //load image into imageview using picasso
+        Picasso.Builder(context)
+            .executor(Executors.newSingleThreadExecutor())
+            .build()
+            .load("file://" + item.photoPath)
+            .into(photo)
 
-        holder.itemView.findViewById<TextView>(R.id.itemDelete).visibility = View.VISIBLE
-        holder.itemView.findViewById<TextView>(R.id.itemDelete).setOnClickListener(deleteListener)
-        holder.itemView.findViewById<TextView>(R.id.itemDelete).tag = ItemId(clothes[position].categoryId, clothes[position].id)
+        //handling for editMode
+        if (editMode) {
+            //change add button to be item deleter
+            add.setOnClickListener(itemDeleteListener)
+            add.setText(R.string.remove)
 
-        holder.itemView.findViewById<TextView>(R.id.itemName).text = clothes[position].name
+            //editing handling for maxWash
+            washMax.setBackgroundResource(R.drawable.bottom_line)
+            washMax.isEnabled = true
+            washMax.isClickable = true
+            washMax.addSingleTextChangedListener(object : TextWatcher {
+                override fun afterTextChanged(s: Editable) {
+                    if (!editMode) return
+                    if (s.toString().isEmpty() || s.toString().toIntOrNull() == null || s.toString().toInt() < 1) return
+                    if (!(context.application as ApplicationBase).changedItems.containsKey(item.categoryId.toString() + "-" + item.id)) {
+                        (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id] = item
+                    }
+                    (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id]?.maxWorn = s.toString().toInt()
+                    item.maxWorn = s.toString().toInt()
+                }
 
-        holder.itemView.findViewById<View>(R.id.itemPreview).visibility = View.VISIBLE
+                override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
+            })
 
-        val photo = holder.itemView.findViewById<ImageView>(R.id.itemPreview)
-        photo.setImageResource(0)
-        Picasso.Builder(context).executor(Executors.newSingleThreadExecutor()).build().load("file://"+clothes[position].photoPath).into(photo)
+            //editing handling for name
+            name.setBackgroundResource(R.drawable.bottom_line)
+            name.isEnabled = true
+            name.isClickable = true
+            name.addSingleTextChangedListener(object : TextWatcher {
+                override fun afterTextChanged(s: Editable) {
+                    if (!editMode) return
+                    if (s.toString().isEmpty()) return
+                    if (!(context.application as ApplicationBase).changedItems.containsKey(item.categoryId.toString() + "-" + item.id)) {
+                        (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id] = item
+                    }
+                    (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id]?.name = s.toString()
+                    item.name = s.toString()
+                }
+
+                override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
+            })
+        } else {
+            //change add button back to wear item
+            add.setText(R.string.wear)
+            add.setOnClickListener (itemListener)
+
+            //disable edit texts
+            washMax.setBackgroundResource(0)
+            washMax.isEnabled = false
+            washMax.isClickable = false
+            name.setBackgroundResource(0)
+            name.isEnabled = false
+            name.isClickable = false
+        }
+        //set tag to be item id info no matter what
+        add.tag = ItemId(item.categoryId, item.id)
     }
-
-
 }
+
