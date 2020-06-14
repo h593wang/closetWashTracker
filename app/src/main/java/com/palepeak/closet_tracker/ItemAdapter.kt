@@ -6,7 +6,6 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
@@ -75,6 +74,8 @@ class ItemAdapter(
         val add = holder.itemView.findViewById<TextView>(R.id.addButton)
         val washMax = holder.itemView.findViewById<SingleListenEditText>(R.id.itemWashMax)
         val item = items[position]
+        val wornTotal = holder.itemView.findViewById<TextView>(R.id.itemWornTotal)
+        val washTotal = holder.itemView.findViewById<TextView>(R.id.itemWashTotal)
 
         //remove text change listeners
         washMax.removeSingleTextChangedListener()
@@ -82,6 +83,8 @@ class ItemAdapter(
         //setting the text based on the section info
         wash.text = context.resources.getString(R.string.worn, item.worn)
         washMax.setText(item.maxWorn.toString())
+        wornTotal.text = context.resources.getString(R.string.totals, item.wornTotal)
+        washTotal.text = item.washTotal.toString()
         name.setText(item.name)
         //set text color based on wash data
         if (item.worn >= item.maxWorn) {

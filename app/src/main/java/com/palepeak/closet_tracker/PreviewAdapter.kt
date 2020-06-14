@@ -36,8 +36,8 @@ class PreviewAdapter(private var context: Activity, private val clothes: ArrayLi
             holder.itemView.findViewById<View>(R.id.itemPreview).visibility = View.GONE
             holder.itemView.findViewById<TextView>(R.id.itemWashLabel).setText(R.string.outfit_preview_placeholder)
             holder.itemView.findViewById<View>(R.id.itemWashBox).visibility = View.GONE
-            holder.itemView.findViewById<TextView>(R.id.itemName).text = ""
-            holder.itemView.findViewById<TextView>(R.id.itemDelete).visibility = View.GONE
+            holder.itemView.findViewById<TextView>(R.id.itemName).visibility = View.GONE
+            holder.itemView.findViewById<View>(R.id.itemDelete).visibility = View.GONE
             holder.itemView.findViewById<TextView>(R.id.itemWashResult).text = ""
             holder.itemView.isSelected = false
             holder.itemView.findViewById<View>(R.id.arrow).visibility = View.GONE
@@ -49,11 +49,13 @@ class PreviewAdapter(private var context: Activity, private val clothes: ArrayLi
         holder.itemView.findViewById<View>(R.id.arrow).visibility = View.VISIBLE
         //set the selection status based on the selectedSections info
         val box = holder.itemView.findViewById<CheckBox>(R.id.itemWashBox)
+        val clickHolder = holder.itemView.findViewById<View>(R.id.activeItemClickHolder)
         box.visibility = View.VISIBLE
         box.isChecked = clothes[position].wash
-        box.setOnClickListener {
+        clickHolder.setOnClickListener {
             //if the wash limit is met or exceeded, highlight in red
             clothes[position].wash = !clothes[position].wash
+            box.isChecked = clothes[position].wash
 
             val washResult = holder.itemView.findViewById<TextView>(R.id.itemWashResult)
             val wash = holder.itemView.findViewById<TextView>(R.id.itemWash)
@@ -83,10 +85,12 @@ class PreviewAdapter(private var context: Activity, private val clothes: ArrayLi
         else wash.setTextColor(context.resources.getColor(R.color.grey))
 
         //remove from outfit button handling
-        holder.itemView.findViewById<TextView>(R.id.itemDelete).visibility = View.VISIBLE
-        holder.itemView.findViewById<TextView>(R.id.itemDelete).setOnClickListener(deleteListener)
-        holder.itemView.findViewById<TextView>(R.id.itemDelete).tag = ItemId(clothes[position].categoryId, clothes[position].id)
+        holder.itemView.findViewById<View>(R.id.itemDelete).visibility = View.VISIBLE
+        holder.itemView.findViewById<View>(R.id.itemDelete).setOnClickListener(deleteListener)
+        holder.itemView.findViewById<View>(R.id.itemDelete).tag = ItemId(clothes[position].categoryId, clothes[position].id)
+        holder.itemView.findViewById<View>(R.id.itemDelete).bringToFront()
 
+        holder.itemView.findViewById<TextView>(R.id.itemName).visibility = View.VISIBLE
         holder.itemView.findViewById<TextView>(R.id.itemName).text = clothes[position].name
 
         //load photo into imageView

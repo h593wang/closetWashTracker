@@ -16,6 +16,7 @@ import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.TypedValue
+import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
@@ -36,7 +37,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var searchEditText: EditText
     private lateinit var bitmap: Bitmap
     private lateinit var seekFiller: ImageView
-    private var shortAnimationDuration: Int = 0
     private var filename = ""
     private var searchResults = ArrayList<ClothesItem>()
     private var inAddItem = false
@@ -333,7 +333,9 @@ class MainActivity : AppCompatActivity() {
                     wears.toInt(),
                     name,
                     filenameAbs,
-                    false
+                    false,
+                    0,
+                    0
                 )
                 category.items.add(item)
                 //notify adapter of new item
@@ -379,7 +381,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        shortAnimationDuration = resources.getInteger(android.R.integer.config_shortAnimTime)
 
         //get saved data
         if (File(filesDir.absolutePath+"/data").exists()) {
@@ -443,6 +444,7 @@ class MainActivity : AppCompatActivity() {
 
         //handling for clear day button
         findViewById<View>(R.id.cancelButton).setOnClickListener {
+            (application as ApplicationBase).vibrate(20)
             saveData.activeItems.clear()
             today.adapter?.notifyDataSetChanged()
         }
@@ -481,31 +483,47 @@ class MainActivity : AppCompatActivity() {
                         for (cata in saveData.savedCategories.filter { it.id == saveData.activeItems[i].categoryId }) {
                             for (item in cata.items.filter { it.id == saveData.activeItems[i].id }) {
                                 //update their worn data
-                                if (item.wash) item.worn = 0
+                                item.wornTotal++
+                                if (item.wash) {
+                                    item.worn = 0
+                                    item.washTotal++
+                                }
                                 else item.worn += 1
                             }
                         }
                     }
+                    //display a toast message
+                    val text = "Saved! See you tomorrow"
+                    val duration = Toast.LENGTH_LONG
+                    val toast = Toast.makeText(applicationContext, text, duration)
+                    toast.show()
                     //clear active items and search text, notify adapters that data has been updated
                     saveData.activeItems.clear()
                     searchEditText.text.clear()
                     today.adapter?.notifyDataSetChanged()
                     categories.adapter?.notifyDataSetChanged()
+                } else {
+                    val text = "Please add items to your outfit first"
+                    val duration = Toast.LENGTH_SHORT
+                    val toast = Toast.makeText(applicationContext, text, duration)
+                    toast.show()
                 }
             }
 
         })
 
         //handling for icon for toggling edit mode
-        findViewById<View>(R.id.editImage).setOnClickListener {
+        val editIcon = findViewById<ImageView>(R.id.editImage)
+        editIcon.setOnClickListener {
+            (application as ApplicationBase).vibrate(20)
             (categories.adapter as CategoryAdapter).toggleMode()
             if ((categories.adapter as CategoryAdapter).editMode) {
                 //clear data to be default
                 (application as ApplicationBase).changedCategories.clear()
                 (application as ApplicationBase).changedItems.clear()
-                findViewById<ImageView>(R.id.editImage).setColorFilter(R.color.red)
+                editIcon.setImageResource(R.drawable.round_edit_active_24)
             } else {
-                findViewById<ImageView>(R.id.editImage).colorFilter = null
+                editIcon.setImageResource(R.drawable.round_edit_24)
                 //get changed categories and save changes
                 (application as ApplicationBase).changedCategories.let {
                     for (category in saveData.savedCategories.filter {cat -> it.containsKey(cat.id)}) {
@@ -534,6 +552,7 @@ class MainActivity : AppCompatActivity() {
         val adapter3 = SearchAdapter(this, searchResults, itemWearListener)
         val linearLayoutManager3 =  LinearLayoutManager(this)
         findViewById<ImageView>(R.id.clearInputButton).setOnClickListener {
+            (application as ApplicationBase).vibrate(20)
             searchEditText.text.clear()
         }
         //setting up adapter
@@ -545,10 +564,10 @@ class MainActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable) {
                 //hide search result if search term is empty
                 if (s.isEmpty()) {
-                    searchResult.visibility = View.GONE
+                    fadeOut(searchResult)
                     return
                 }
-                searchResult.visibility = View.VISIBLE
+                fadeIn(searchResult)
                 val searchTerm = s.toString()
                 searchResults.clear()
                 //search for items with matching names
@@ -579,6 +598,22 @@ class MainActivity : AppCompatActivity() {
                 findViewById<EditText>(R.id.wears).setText("")
                 findViewById<EditText>(R.id.name).setText("")
                 fadeOut(findViewById<View>(R.id.addHolder))
+            }
+        }
+
+        findViewById<ImageView>(R.id.info).setOnClickListener {
+            (application as ApplicationBase).vibrate(20)
+        }
+
+        findViewById<TextView>(R.id.email).setOnClickListener {
+            (application as ApplicationBase).vibrate(20)
+            val intent = Intent(Intent.ACTION_SENDTO).apply {
+                data = Uri.parse("mailto:") // only email apps should handle this
+                putExtra(Intent.EXTRA_EMAIL, "palepeak25@gmail.com")
+                putExtra(Intent.EXTRA_SUBJECT, "Contact: Closet & Laundry")
+            }
+            if (intent.resolveActivity(packageManager) != null) {
+                startActivity(intent)
             }
         }
     }
@@ -757,7 +792,7 @@ class MainActivity : AppCompatActivity() {
             // listener set on the view.
             animate()
                 .alpha(1f)
-                .setDuration(shortAnimationDuration.toLong())
+                .setDuration((application as ApplicationBase).shortAnimationDuration.toLong())
                 .setListener(null)
         }
     }
@@ -765,7 +800,7 @@ class MainActivity : AppCompatActivity() {
     private fun fadeOut(view: View) {
         view.animate()
             .alpha(0f)
-            .setDuration(shortAnimationDuration.toLong())
+            .setDuration((application as ApplicationBase).shortAnimationDuration.toLong())
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     view.visibility = View.GONE

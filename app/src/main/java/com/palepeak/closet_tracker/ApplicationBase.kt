@@ -11,6 +11,7 @@ class ApplicationBase: Application() {
     //changed item tracker for edit mode
     var changedCategories = HashMap<Int, ClothesCategory>()
     var changedItems = HashMap<String, ClothesItem>()
+    var shortAnimationDuration: Int = 0
 
     @Suppress("DEPRECATION")
     fun vibrate(length: Long) {
@@ -20,5 +21,10 @@ class ApplicationBase: Application() {
         } else {
             v.vibrate(length)
         }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        shortAnimationDuration = resources.getInteger(android.R.integer.config_shortAnimTime)
     }
 }

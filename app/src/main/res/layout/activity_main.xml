@@ -68,6 +68,7 @@
                 android:paddingBottom="16dp"
                 android:textFontWeight="700"
                 android:text="@string/slide_to_end_day"
+                android:textAllCaps="true"
                 app:layout_constraintEnd_toEndOf="@id/endSlider"
                 app:layout_constraintStart_toStartOf="@id/endSlider"
                 app:layout_constraintTop_toBottomOf="@id/outfitPreview" />
@@ -105,9 +106,8 @@
                 android:layout_marginStart="8dp"
                 android:layout_marginTop="8dp"
                 android:layout_marginEnd="8dp"
-                android:layout_marginBottom="32dp"
                 android:overScrollMode="never"
-                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintBottom_toTopOf="@+id/email"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/textView"
@@ -139,8 +139,10 @@
                 android:id="@+id/editImage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
                 android:contentDescription="@string/edit"
                 android:padding="8dp"
+                app:layout_constraintBottom_toBottomOf="@+id/textView"
                 app:layout_constraintStart_toEndOf="@+id/textView"
                 app:layout_constraintTop_toTopOf="@+id/textView"
                 app:srcCompat="@drawable/round_edit_24" />
@@ -200,13 +202,13 @@
                 android:id="@+id/cancelButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:contentDescription="@string/clear_today_s_outfit"
                 android:padding="8dp"
                 app:layout_constraintBottom_toBottomOf="@+id/textView2"
                 app:layout_constraintStart_toEndOf="@+id/textView2"
                 app:layout_constraintTop_toTopOf="@+id/textView2"
-                app:layout_constraintVertical_bias="0.15"
-                app:srcCompat="@drawable/round_cancel_24"
-                android:contentDescription="@string/clear_today_s_outfit" />
+                app:srcCompat="@drawable/round_backspace_24" />
 
             <TextView
                 android:id="@+id/title"
@@ -224,7 +226,7 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
             <ImageView
-                android:id="@+id/imageView3"
+                android:id="@+id/info"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="16dp"
@@ -234,6 +236,20 @@
                 app:layout_constraintTop_toTopOf="@id/title"
                 app:srcCompat="@drawable/round_info_24"
                 android:contentDescription="@string/more_info" />
+
+            <TextView
+                android:id="@+id/email"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:padding="8dp"
+                android:text="@string/email"
+                android:textColor="@color/itembgaccept"
+                android:textSize="12sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/categoryList" />
 
 
         </androidx.constraintlayout.widget.ConstraintLayout>
