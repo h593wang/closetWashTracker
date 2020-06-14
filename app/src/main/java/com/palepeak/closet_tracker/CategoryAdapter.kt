@@ -6,7 +6,6 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -64,8 +63,10 @@ class CategoryAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         if (holder.viewType == 1) {
             //initialize add category button
-            holder.itemView.findViewById<Button>(R.id.button).setOnClickListener(addCategoryListener)
-            holder.itemView.findViewById<Button>(R.id.button).setText(R.string.add_category)
+            val button = holder.itemView
+            button.setOnClickListener(addCategoryListener)
+            button.setBackgroundResource(R.drawable.rectangle_bg_grey_selector)
+            button.findViewById<TextView>(R.id.buttonLabel).setText(R.string.add_category)
             return
         }
 
@@ -89,11 +90,11 @@ class CategoryAdapter(
 
         //handle expanded info
         if (editMode || category.expanded) {
-            bg.setBackgroundResource(R.drawable.dark_primate_rectangle_top)
+            bg.setBackgroundResource(R.drawable.rectangle_category_expanded)
             icon.rotation = 0f
             itemsList.visibility = View.VISIBLE
         } else {
-            bg.setBackgroundResource(R.drawable.dark_primate_rectangle)
+            bg.setBackgroundResource(R.drawable.rectangle_category_header)
             icon.rotation = 180f
             itemsList.visibility = View.GONE
         }
@@ -110,8 +111,7 @@ class CategoryAdapter(
         if (editMode) {
             //make name into edit mode
             name.setBackgroundResource(R.drawable.bottom_line)
-            name.isEnabled = true
-            name.isClickable = true
+            name.bringToFront()
             name.addSingleTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable) {
                     if (!editMode) return
@@ -130,8 +130,7 @@ class CategoryAdapter(
 
             //change wears to edit mode
             wears.setBackgroundResource(R.drawable.bottom_line)
-            wears.isEnabled = true
-            wears.isClickable = true
+            wears.bringToFront()
             wears.addSingleTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable) {
                     if (!editMode) return
@@ -152,30 +151,28 @@ class CategoryAdapter(
             clickHolder.isClickable = false
             //make the icon delete, and add the delete click listener to it
             icon.isClickable = true
-            icon.setImageResource(R.drawable.delete)
+            icon.setImageResource(R.drawable.round_delete_forever_24)
             icon.tag = category.id
             icon.setOnClickListener(deleteListener)
         } else {
             //disable name and wears editing
             name.setBackgroundResource(0)
-            name.isEnabled = false
-            name.isClickable = false
             wears.setBackgroundResource(0)
-            wears.isEnabled = false
-            wears.isClickable = false
             //disable delete icon and change it to the expand icon
             icon.isClickable = false
             //add expand handling to clickHolder
             clickHolder.isClickable = true
+            clickHolder.bringToFront()
             icon.setImageResource(R.drawable.expand)
             clickHolder.setOnClickListener {
+                (context.application as ApplicationBase).vibrate(10)
                 category.expanded = !category.expanded
                 if (editMode || category.expanded) {
-                    bg.setBackgroundResource(R.drawable.dark_primate_rectangle_top)
+                    bg.setBackgroundResource(R.drawable.rectangle_category_expanded)
                     icon.rotation = 0f
                     itemsList.visibility = View.VISIBLE
                 } else {
-                    bg.setBackgroundResource(R.drawable.dark_primate_rectangle)
+                    bg.setBackgroundResource(R.drawable.rectangle_category_header)
                     icon.rotation = 180f
                     itemsList.visibility = View.GONE
                 }

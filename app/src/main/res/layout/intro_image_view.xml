@@ -27,7 +27,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:src="@drawable/camera"
+        android:src="@drawable/round_camera_24"
         android:contentDescription="@string/item_preview" />
 
     <Button

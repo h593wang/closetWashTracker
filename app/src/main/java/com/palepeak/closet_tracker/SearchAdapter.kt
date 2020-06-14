@@ -49,11 +49,19 @@ class SearchAdapter(private var context: Activity, private val clothes: ArrayLis
 
         //load image using picasso
         preview.visibility = View.VISIBLE
-        Picasso.Builder(context).executor(Executors.newSingleThreadExecutor()).build().load("file://"+clothes[position].photoPath).into(preview)
+        if (clothes[position].photoPath.isEmpty()) {
+            preview.setImageResource(R.drawable.round_camera_24)
+        } else {
+            Picasso.Builder(context).executor(Executors.newSingleThreadExecutor()).build()
+                .load("file://" + clothes[position].photoPath).into(preview)
+        }
 
         wearButton.visibility = View.VISIBLE
         wearButton.tag = ItemId(clothes[position].categoryId, clothes[position].id)
-        wearButton.setOnClickListener(listener)
+        wearButton.setOnClickListener {
+            (context.application as ApplicationBase).vibrate(10)
+            listener.onClick(it)
+        }
 
         worn.visibility = View.VISIBLE
         worn.text = context.resources.getString(R.string.worn_max, clothes[position].worn, clothes[position].maxWorn)
@@ -61,6 +69,7 @@ class SearchAdapter(private var context: Activity, private val clothes: ArrayLis
         if (clothes[position].worn >= clothes[position].maxWorn)
             worn.setTextColor(context.resources.getColor(R.color.red))
         else worn.setTextColor(context.resources.getColor(R.color.grey))
+
 
     }
 

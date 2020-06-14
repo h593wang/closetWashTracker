@@ -1,5 +1,7 @@
 package com.palepeak.closet_tracker
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
@@ -16,10 +18,7 @@ import android.text.TextWatcher
 import android.util.TypedValue
 import android.view.View
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -36,6 +35,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var imageViewPreview: ImageView
     private lateinit var searchEditText: EditText
     private lateinit var bitmap: Bitmap
+    private lateinit var seekFiller: ImageView
+    private var shortAnimationDuration: Int = 0
     private var filename = ""
     private var searchResults = ArrayList<ClothesItem>()
     private var inAddItem = false
@@ -47,10 +48,10 @@ class MainActivity : AppCompatActivity() {
         //get category id from tag
         val id = it.tag as Int
         //show a confirmation dialog
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.MyDialogTheme)
             .setTitle("Confirmation")
             .setMessage("Do you really want to delete this category?")
-            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setIcon(R.drawable.round_error_24)
             .setPositiveButton(android.R.string.yes
             ) { _, _ ->
                 handleCategoryDelete(id)
@@ -99,10 +100,10 @@ class MainActivity : AppCompatActivity() {
         //get item id from tag
         val id = it.tag as ItemId
         //show confirmation dialog
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.MyDialogTheme)
             .setTitle("Confirmation")
             .setMessage("Do you really want to delete this item?")
-            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setIcon(R.drawable.round_error_24)
             .setPositiveButton(android.R.string.yes
             ) { _, _ ->
                 handleItemDelete(id)
@@ -194,21 +195,18 @@ class MainActivity : AppCompatActivity() {
 
         //show add category dialog box
         val holder = findViewById<View>(R.id.addHolder)
-        holder.visibility = View.VISIBLE
+        fadeIn(holder)
         holder.findViewById<TextView>(R.id.addTitle).setText(R.string.add_category)
         holder.findViewById<View>(R.id.photoPreview).visibility = View.GONE
         holder.findViewById<View>(R.id.takePhoto).visibility = View.GONE
         holder.findViewById<EditText>(R.id.wears).setHint(R.string.default_wears_before_wash)
-        holder.findViewById<Button>(R.id.buttonCancel).setOnClickListener {
+        holder.findViewById<TextView>(R.id.buttonCancel).setOnClickListener {
             //add cancelled, revert to default state
             inAddCat = false
             hideKeyboard(this)
-            holder.findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.camera)
-            holder.findViewById<EditText>(R.id.wears).setText("")
-            holder.findViewById<EditText>(R.id.name).setText("")
-            holder.visibility = View.GONE
+            fadeOut(holder)
         }
-        holder.findViewById<Button>(R.id.doneAdding).setOnClickListener {
+        holder.findViewById<TextView>(R.id.doneAdding).setOnClickListener {
             inAddCat = false
             //adding, hide keyboard
             hideKeyboard(this)
@@ -237,18 +235,15 @@ class MainActivity : AppCompatActivity() {
                     wears.toInt() < 1 -> error = "Invalid max wears"
                 }
                 //and show dialog
-                AlertDialog.Builder(this)
+                AlertDialog.Builder(this, R.style.MyDialogTheme)
                     .setTitle("Error")
                     .setMessage(error)
-                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setIcon(R.drawable.round_error_24)
                     .setPositiveButton(android.R.string.ok,null)
                     .show()
             }
             //revert to default state on both success and failure
-            holder.findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.camera)
-            holder.findViewById<EditText>(R.id.wears).setText("")
-            holder.findViewById<EditText>(R.id.name).setText("")
-            holder.visibility = View.GONE
+            fadeOut(holder)
         }
     }
 
@@ -294,33 +289,37 @@ class MainActivity : AppCompatActivity() {
         }
 
         //make create item dialog visible
-        holder.visibility = View.VISIBLE
+        fadeIn(holder)
         holder.findViewById<TextView>(R.id.addTitle).setText(R.string.add_item)
         imageViewPreview.visibility = View.VISIBLE
-        imageViewPreview.setImageResource(R.drawable.camera)
+        imageViewPreview.setImageResource(R.drawable.round_camera_24)
         holder.findViewById<EditText>(R.id.wears).hint = "Default for Catagory is " + category.desiredWorn + "    "
-        holder.findViewById<Button>(R.id.buttonCancel).setOnClickListener {
+        holder.findViewById<TextView>(R.id.buttonCancel).setOnClickListener {
             inAddItem = false
             hideKeyboard(this)
             //add cancelled, revert to default state
-            imageViewPreview.setImageResource(R.drawable.camera)
-            holder.findViewById<EditText>(R.id.wears).setText("")
-            holder.findViewById<EditText>(R.id.name).setText("")
-            holder.visibility = View.GONE
+            fadeOut(holder)
         }
 
-        holder.findViewById<Button>(R.id.doneAdding).setOnClickListener {
+        var filenameAbs = ""
+        holder.findViewById<TextView>(R.id.doneAdding).setOnClickListener {
             inAddItem = false
             //adding complete, hide keyboard
             hideKeyboard(this)
 
-            //save image to file
-            val filenameAbs = createImageFile("$catId-$validItemId").absolutePath
-            try {
-                val out = FileOutputStream(filenameAbs)
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out) // bmp is your Bitmap instance
-            } catch (e: java.lang.Exception) {
-                e.printStackTrace()
+            if (this::bitmap.isInitialized) {
+                //save image to file
+                filenameAbs = createImageFile("$catId-$validItemId").absolutePath
+                try {
+                    val out = FileOutputStream(filenameAbs)
+                    bitmap.compress(
+                        Bitmap.CompressFormat.PNG,
+                        100,
+                        out
+                    ) // bmp is your Bitmap instance
+                } catch (e: java.lang.Exception) {
+                    e.printStackTrace()
+                }
             }
 
             val name = holder.findViewById<EditText>(R.id.name).text.toString()
@@ -348,19 +347,16 @@ class MainActivity : AppCompatActivity() {
                     wears.toIntOrNull() == null -> error = "Your item couldn't be added because the desired wears wasn't a number"
                     wears.toInt() < 1 -> error = "Invalid max wears"
                 }
-                AlertDialog.Builder(this)
+                AlertDialog.Builder(this, R.style.MyDialogTheme)
                     .setTitle("Error")
                     .setMessage(error)
-                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setIcon(R.drawable.round_error_24)
                     .setPositiveButton(android.R.string.ok,null)
                     .show()
             }
 
             //revert dialog to default state regardless of success of failure
-            holder.findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.camera)
-            holder.findViewById<EditText>(R.id.wears).setText("")
-            holder.findViewById<EditText>(R.id.name).setText("")
-            holder.visibility = View.GONE
+            fadeOut(holder)
         }
     }
 
@@ -383,6 +379,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        shortAnimationDuration = resources.getInteger(android.R.integer.config_shortAnimTime)
 
         //get saved data
         if (File(filesDir.absolutePath+"/data").exists()) {
@@ -411,10 +408,10 @@ class MainActivity : AppCompatActivity() {
                     is2.close()
                     fis2.close()
                     //notify user that backup had to be used
-                    AlertDialog.Builder(this)
+                    AlertDialog.Builder(this, R.style.MyDialogTheme)
                         .setTitle("Error")
                         .setMessage("Unable to lead data. Backup loade")
-                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setIcon(R.drawable.round_error_24)
                         .setPositiveButton(android.R.string.ok, null)
                         .show()
                 }
@@ -445,32 +442,59 @@ class MainActivity : AppCompatActivity() {
         today.adapter = adapter2
 
         //handling for clear day button
-        findViewById<Button>(R.id.cancelButton).setOnClickListener {
+        findViewById<View>(R.id.cancelButton).setOnClickListener {
             saveData.activeItems.clear()
             today.adapter?.notifyDataSetChanged()
         }
 
-        //handling for end day button
-        findViewById<Button>(R.id.endButton).setOnClickListener {
-            if (saveData.activeItems.size != 0) {
-                //for every item worn today...
-                for (i in saveData.activeItems.indices) {
-                    //find them in save data and...
-                    for (cata in saveData.savedCategories.filter { it.id == saveData.activeItems[i].categoryId }) {
-                        for (item in cata.items.filter { it.id == saveData.activeItems[i].id }) {
-                            //update their worn data
-                            if (item.wash) item.worn = 0
-                            else item.worn += 1
+        //handling for end day seekbar slider
+        seekFiller = findViewById(R.id.seekFill)
+        findViewById<SeekBar>(R.id.endSlider).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) {
+                if (p0 == null) return
+                //update imageview thumb width when progress is changed
+                val layoutParams = seekFiller.layoutParams
+                //                                                                  value here needs to match base width in xml
+                val px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 72f, resources.displayMetrics)
+                layoutParams.width = (p0.width * (p1*3) / 200f).toInt().coerceAtMost(p0.width).coerceAtLeast(px.toInt())
+                seekFiller.layoutParams = layoutParams
+            }
+
+            override fun onStartTrackingTouch(p0: SeekBar?) {}
+
+            override fun onStopTrackingTouch(p0: SeekBar?) {
+                if (p0 == null) return
+                if (p0.progress < 66){
+                    //if the progress is not enough, reset using animation
+                    animateSeekShrink(p0)
+                    return
+                }
+                //if the progress is enough, reset bar and...
+                p0.progress = p0.progress.coerceAtMost(66)
+                animateSeekShrink(p0)
+                (application as ApplicationBase).vibrate(20)
+                //process the activeItems
+                if (saveData.activeItems.size != 0) {
+                    //for every item worn today...
+                    for (i in saveData.activeItems.indices) {
+                        //find them in save data and...
+                        for (cata in saveData.savedCategories.filter { it.id == saveData.activeItems[i].categoryId }) {
+                            for (item in cata.items.filter { it.id == saveData.activeItems[i].id }) {
+                                //update their worn data
+                                if (item.wash) item.worn = 0
+                                else item.worn += 1
+                            }
                         }
                     }
+                    //clear active items and search text, notify adapters that data has been updated
+                    saveData.activeItems.clear()
+                    searchEditText.text.clear()
+                    today.adapter?.notifyDataSetChanged()
+                    categories.adapter?.notifyDataSetChanged()
                 }
-                //clear active items and search text, notify adapters that data has been updated
-                saveData.activeItems.clear()
-                searchEditText.text.clear()
-                today.adapter?.notifyDataSetChanged()
-                categories.adapter?.notifyDataSetChanged()
             }
-        }
+
+        })
 
         //handling for icon for toggling edit mode
         findViewById<View>(R.id.editImage).setOnClickListener {
@@ -540,8 +564,32 @@ class MainActivity : AppCompatActivity() {
             override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
         })
+
+        //setting the grey area to be a dismiss action
+        findViewById<View>(R.id.addHolder).setOnClickListener {
+            if (inAddCat) {
+                inAddCat = false
+                hideKeyboard(this)
+                fadeOut(findViewById<View>(R.id.addHolder))
+            } else if (inAddItem) {
+                inAddItem = false
+                hideKeyboard(this)
+                //add cancelled, revert to default state
+                imageViewPreview.setImageResource(R.drawable.round_camera_24)
+                findViewById<EditText>(R.id.wears).setText("")
+                findViewById<EditText>(R.id.name).setText("")
+                fadeOut(findViewById<View>(R.id.addHolder))
+            }
+        }
     }
 
+    //recursive animation handler
+    fun animateSeekShrink(p0: SeekBar) {
+        if (p0.progress > 0) {
+            p0.progress = (p0.progress - 2).coerceAtLeast(0)
+            Handler().postDelayed( {animateSeekShrink(p0)}, 10)
+        }
+    }
     override fun onStop() {
         //save data to file
         val fos: FileOutputStream = applicationContext.openFileOutput("data", Context.MODE_PRIVATE)
@@ -577,7 +625,7 @@ class MainActivity : AppCompatActivity() {
         if (findViewById<View>(R.id.addHolder).visibility == View.VISIBLE) {
             inAddItem = false
             inAddCat = false
-            findViewById<View>(R.id.addHolder).visibility = View.GONE
+            fadeOut(findViewById<View>(R.id.addHolder))
             return
         }
         super.onBackPressed()
@@ -696,6 +744,37 @@ class MainActivity : AppCompatActivity() {
         ).apply {
             filename = absolutePath
         }
+    }
+
+    private fun fadeIn(view: View) {
+        view.apply {
+            // Set the content view to 0% opacity but visible, so that it is visible
+            // (but fully transparent) during the animation.
+            alpha = 0f
+            visibility = View.VISIBLE
+
+            // Animate the content view to 100% opacity, and clear any animation
+            // listener set on the view.
+            animate()
+                .alpha(1f)
+                .setDuration(shortAnimationDuration.toLong())
+                .setListener(null)
+        }
+    }
+
+    private fun fadeOut(view: View) {
+        view.animate()
+            .alpha(0f)
+            .setDuration(shortAnimationDuration.toLong())
+            .setListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    view.visibility = View.GONE
+
+                    findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.round_camera_24)
+                    findViewById<EditText>(R.id.wears).setText("")
+                    findViewById<EditText>(R.id.name).setText("")
+                }
+            })
     }
 
     //companion object for request ID

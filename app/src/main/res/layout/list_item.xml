@@ -21,15 +21,16 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
-        android:textColor="@android:color/black"
-        android:textSize="20sp"
-        android:gravity="center_vertical"
         android:background="@android:color/transparent"
+        android:gravity="center_vertical"
+        android:maxLines="3"
+        android:textColor="@android:color/black"
+        android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@id/itemWash"
         app:layout_constraintEnd_toStartOf="@+id/addButton"
         app:layout_constraintStart_toEndOf="@+id/itemPreview"
         app:layout_constraintTop_toTopOf="parent"
-        tools:text="Shirts" />
+        tools:text="Charcoal Banana Rebublic Merino and Cashmere Blend Crewneck Sweater" />
 
     <ImageView
         android:id="@+id/itemPreview"
@@ -41,15 +42,19 @@
         app:srcCompat="@drawable/ic_launcher_background"
         android:contentDescription="@string/item_preview" />
 
-    <Button
+    <TextView
         android:id="@+id/addButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:elevation="5dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/rectangle_bg_grey_selector"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="12dp"
+        android:textAllCaps="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="wear" />
 
     <TextView
         android:id="@+id/itemWash"

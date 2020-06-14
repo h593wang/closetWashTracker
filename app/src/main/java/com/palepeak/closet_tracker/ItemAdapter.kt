@@ -58,13 +58,13 @@ class ItemAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         if (holder.viewType == 1) {
             //handling for add item button
-            holder.itemView.setBackgroundColor(context.resources.getColor(R.color.itembg))
-            val button = holder.itemView.findViewById<Button>(R.id.button)
+
+            val button = holder.itemView
             //save category id as tag for the onClickListener handling
             button.tag = catId
             button.setOnClickListener(addItemListener)
-            holder.itemView.setBackgroundResource(R.drawable.rectangle_bottom)
-            button.setText(R.string.add_item)
+            button.setBackgroundResource(R.drawable.rectangle_bottom_selector)
+            button.findViewById<TextView>(R.id.buttonLabel).setText(R.string.add_item)
             return
         }
 
@@ -72,7 +72,7 @@ class ItemAdapter(
         val wash = holder.itemView.findViewById<TextView>(R.id.itemWash)
         val name = holder.itemView.findViewById<SingleListenEditText>(R.id.itemName)
         val photo = holder.itemView.findViewById<ImageView>(R.id.itemPreview)
-        val add = holder.itemView.findViewById<Button>(R.id.addButton)
+        val add = holder.itemView.findViewById<TextView>(R.id.addButton)
         val washMax = holder.itemView.findViewById<SingleListenEditText>(R.id.itemWashMax)
         val item = items[position]
 
@@ -93,12 +93,16 @@ class ItemAdapter(
             washMax.setTextColor(context.resources.getColor(R.color.grey))
         }
 
-        //load image into imageview using picasso
-        Picasso.Builder(context)
-            .executor(Executors.newSingleThreadExecutor())
-            .build()
-            .load("file://" + item.photoPath)
-            .into(photo)
+        if (item.photoPath.isEmpty()) {
+            photo.setImageResource(R.drawable.round_camera_24)
+        } else {
+            //load image into imageview using picasso
+            Picasso.Builder(context)
+                .executor(Executors.newSingleThreadExecutor())
+                .build()
+                .load("file://" + item.photoPath)
+                .into(photo)
+        }
 
         //handling for editMode
         if (editMode) {
@@ -146,15 +150,19 @@ class ItemAdapter(
         } else {
             //change add button back to wear item
             add.setText(R.string.wear)
-            add.setOnClickListener (itemListener)
+            add.setOnClickListener {
+                (context.application as ApplicationBase).vibrate(10)
+                itemListener.onClick(it)
+            }
 
-            //disable edit texts
-            washMax.setBackgroundResource(0)
-            washMax.isEnabled = false
-            washMax.isClickable = false
-            name.setBackgroundResource(0)
-            name.isEnabled = false
-            name.isClickable = false
+                //disable edit texts
+                washMax.setBackgroundResource(0)
+                washMax.isEnabled = false
+                washMax.isClickable = false
+                name.setBackgroundResource(0)
+                name.isEnabled = false
+                name.isClickable = false
+
         }
         //set tag to be item id info no matter what
         add.tag = ItemId(item.categoryId, item.id)

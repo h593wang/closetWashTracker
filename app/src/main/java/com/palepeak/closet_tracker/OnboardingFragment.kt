@@ -44,7 +44,7 @@ class OnboardingFragment : DialogFragment() {
 
         override fun instantiateItem(container: ViewGroup, position: Int): Any {
             val v = inflater.inflate(R.layout.intro_image_view, container, false)
-            v.findViewById<ImageView>(R.id.image).setImageResource(R.drawable.camera)
+            v.findViewById<ImageView>(R.id.image).setImageResource(R.drawable.round_camera_24)
             container.addView(v)
             v.requestFocus()
             //last page should have dismiss button

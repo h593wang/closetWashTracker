@@ -40,10 +40,13 @@ class PreviewAdapter(private var context: Activity, private val clothes: ArrayLi
             holder.itemView.findViewById<TextView>(R.id.itemDelete).visibility = View.GONE
             holder.itemView.findViewById<TextView>(R.id.itemWashResult).text = ""
             holder.itemView.isSelected = false
+            holder.itemView.findViewById<View>(R.id.arrow).visibility = View.GONE
+            holder.itemView.findViewById<TextView>(R.id.itemWash).text = ""
             holder.itemView.setOnClickListener {  }
             return
         }
 
+        holder.itemView.findViewById<View>(R.id.arrow).visibility = View.VISIBLE
         //set the selection status based on the selectedSections info
         val box = holder.itemView.findViewById<CheckBox>(R.id.itemWashBox)
         box.visibility = View.VISIBLE
@@ -51,22 +54,33 @@ class PreviewAdapter(private var context: Activity, private val clothes: ArrayLi
         box.setOnClickListener {
             //if the wash limit is met or exceeded, highlight in red
             clothes[position].wash = !clothes[position].wash
-            val washValue = if (clothes[position].wash) clothes[position].worn.toString() + "/" + clothes[position].maxWorn + " → 0/" + clothes[position].maxWorn
-            else clothes[position].worn.toString() + "/" + clothes[position].maxWorn + " → " + (clothes[position].worn + 1).toString() + "/" + clothes[position].maxWorn
-            if (!clothes[position].wash && clothes[position].worn+1 >= clothes[position].maxWorn)
-                holder.itemView.findViewById<TextView>(R.id.itemWashResult).setTextColor(context.resources.getColor(R.color.red))
-            else holder.itemView.findViewById<TextView>(R.id.itemWashResult).setTextColor(context.resources.getColor(R.color.grey))
-            holder.itemView.findViewById<TextView>(R.id.itemWashResult).text = washValue
+
+            val washResult = holder.itemView.findViewById<TextView>(R.id.itemWashResult)
+            val wash = holder.itemView.findViewById<TextView>(R.id.itemWash)
+            holder.itemView.findViewById<TextView>(R.id.itemWashLabel).setText(R.string.wash_item)
+            val washValue = if (clothes[position].wash) "0/" + clothes[position].maxWorn
+            else (clothes[position].worn + 1).toString() + "/" + clothes[position].maxWorn
+            washResult.text = washValue
+            wash.text = context.getString(R.string.fraction, clothes[position].worn, clothes[position].maxWorn)
+            //if the wash limit is met or exceeded, highlight in red
+            if (!clothes[position].wash && clothes[position].worn+1 >= clothes[position].maxWorn) washResult.setTextColor(context.resources.getColor(R.color.red))
+            else washResult.setTextColor(context.resources.getColor(R.color.grey))
+            if (!clothes[position].wash && clothes[position].worn >= clothes[position].maxWorn) wash.setTextColor(context.resources.getColor(R.color.red))
+            else wash.setTextColor(context.resources.getColor(R.color.grey))
         }
 
+        val washResult = holder.itemView.findViewById<TextView>(R.id.itemWashResult)
+        val wash = holder.itemView.findViewById<TextView>(R.id.itemWash)
         holder.itemView.findViewById<TextView>(R.id.itemWashLabel).setText(R.string.wash_item)
+        val washValue = if (clothes[position].wash) "0/" + clothes[position].maxWorn
+        else (clothes[position].worn + 1).toString() + "/" + clothes[position].maxWorn
+        washResult.text = washValue
+        wash.text = context.getString(R.string.fraction, clothes[position].worn, clothes[position].maxWorn)
         //if the wash limit is met or exceeded, highlight in red
-        val washValue = if (clothes[position].wash) clothes[position].worn.toString() + "/" + clothes[position].maxWorn + " → 0/" + clothes[position].maxWorn
-        else clothes[position].worn.toString() + "/" + clothes[position].maxWorn + " → " + (clothes[position].worn + 1).toString() + "/" + clothes[position].maxWorn
-        if (!clothes[position].wash && clothes[position].worn+1 >= clothes[position].maxWorn)
-            holder.itemView.findViewById<TextView>(R.id.itemWashResult).setTextColor(context.resources.getColor(R.color.red))
-        else holder.itemView.findViewById<TextView>(R.id.itemWashResult).setTextColor(context.resources.getColor(R.color.grey))
-        holder.itemView.findViewById<TextView>(R.id.itemWashResult).text = washValue
+        if (!clothes[position].wash && clothes[position].worn+1 >= clothes[position].maxWorn) washResult.setTextColor(context.resources.getColor(R.color.red))
+        else washResult.setTextColor(context.resources.getColor(R.color.grey))
+        if (!clothes[position].wash && clothes[position].worn >= clothes[position].maxWorn) wash.setTextColor(context.resources.getColor(R.color.red))
+        else wash.setTextColor(context.resources.getColor(R.color.grey))
 
         //remove from outfit button handling
         holder.itemView.findViewById<TextView>(R.id.itemDelete).visibility = View.VISIBLE
@@ -78,7 +92,12 @@ class PreviewAdapter(private var context: Activity, private val clothes: ArrayLi
         //load photo into imageView
         val photo = holder.itemView.findViewById<ImageView>(R.id.itemPreview)
         photo.visibility = View.VISIBLE
-        Picasso.Builder(context).executor(Executors.newSingleThreadExecutor()).build().load("file://"+clothes[position].photoPath).into(photo)
+        if (clothes[position].photoPath.isEmpty()) {
+            photo.setImageResource(R.drawable.round_camera_24)
+        } else {
+            Picasso.Builder(context).executor(Executors.newSingleThreadExecutor()).build()
+                .load("file://" + clothes[position].photoPath).into(photo)
+        }
     }
 
 

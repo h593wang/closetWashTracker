@@ -4,7 +4,7 @@
     <string name="default_wears_before_wash">"Default wears before wash"</string>
     <string name="add_item">Add Item</string>
     <string name="outfit_preview_placeholder">Nothing added to today\'s outfit</string>
-    <string name="wash_item">Wash Item?</string>
+    <string name="wash_item">Add to laundry?</string>
     <string name="no_results_found">No Results Found</string>
     <string name="worn_max">Worn: %d/%d</string>
     <string name="worn">Worn: %d/</string>
@@ -19,7 +19,8 @@
     <string name="wardrobe">Wardrobe</string>
     <string name="edit">edit</string>
     <string name="today_s_outfit">Today\'s Outfit</string>
-    <string name="search">search</string>
+    <string name="search_items">Search Items</string>
+    <string name="search">Search</string>
     <string name="clear_search">clear search</string>
     <string name="take_photo">Take Photo</string>
     <string name="name">Name</string>
@@ -27,4 +28,10 @@
     <string name="add">Add</string>
     <string name="welcome_1">ggggg</string>
     <string name="dismiss">Dismiss</string>
+    <string name="slide_to_end_day">Slide to End Day</string>
+    <string name="seek_fill">seek fill</string>
+    <string name="clear_today_s_outfit">Clear today\'s outfit</string>
+    <string name="more_info">More info</string>
+    <string name="fraction">%d/%d</string>
+    <string name="into">into</string>
 </resources>
