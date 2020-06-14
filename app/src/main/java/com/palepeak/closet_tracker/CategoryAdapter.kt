@@ -110,9 +110,8 @@ class CategoryAdapter(
             (activityContext.application as ApplicationBase).vibrate(10)
             category.expanded = !category.expanded
 
-            if (editMode) {
-                handleExpanded(category.expanded, itemsList, icon, bg)
-            } else {
+            if (!editMode){
+                handleExpanded(category.expanded, itemsList, icon, bg, false)
                 icon.pivotX = icon.width / 2f
                 icon.pivotY = icon.height / 2f
                 val rotate = ObjectAnimator.ofFloat(
@@ -121,13 +120,14 @@ class CategoryAdapter(
                     icon.rotation,
                     (icon.rotation + 180) % 360
                 )
-                rotate.duration =
-                    (activityContext.application as ApplicationBase).shortAnimationDuration.toLong()
+                rotate.duration = (activityContext.application as ApplicationBase).shortAnimationDuration.toLong()
                 rotate.interpolator = LinearInterpolator()
                 rotate.start()
                 rotate.doOnEnd {
-                    handleExpanded(category.expanded, itemsList, icon, bg)
+                    handleIcon(category.expanded, icon)
                 }
+            } else {
+                handleExpanded(category.expanded, itemsList, icon, bg)
             }
         }
         clickHolder.bringToFront()
@@ -189,17 +189,27 @@ class CategoryAdapter(
         }
     }
 
-    private fun handleExpanded(expanded: Boolean, itemsList: View, icon: View, bg: View) {
+    private fun handleExpanded(expanded: Boolean, itemsList: View, icon: View, bg: View, handleIcon: Boolean = true) {
         when {
             expanded -> {
                 bg.setBackgroundResource(R.drawable.rectangle_category_expanded)
-                icon.rotation = 180f
                 itemsList.visibility = View.VISIBLE
             }
             else -> {
                 bg.setBackgroundResource(R.drawable.rectangle_category_header)
-                icon.rotation = 0f
                 itemsList.visibility = View.GONE
+            }
+        }
+        if (handleIcon) handleIcon(expanded, icon)
+    }
+
+    private fun handleIcon(expanded: Boolean, icon: View) {
+        when {
+            expanded -> {
+                icon.rotation = 180f
+            }
+            else -> {
+                icon.rotation = 0f
             }
         }
         if (editMode) icon.rotation = 0f
