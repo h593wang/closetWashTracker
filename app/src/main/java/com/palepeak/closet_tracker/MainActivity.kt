@@ -292,7 +292,7 @@ class MainActivity : AppCompatActivity() {
         fadeIn(holder)
         holder.findViewById<TextView>(R.id.addTitle).setText(R.string.add_item)
         imageViewPreview.visibility = View.VISIBLE
-        imageViewPreview.setImageResource(R.drawable.round_camera_24)
+        imageViewPreview.setImageResource(R.drawable.round_camera_fill_24)
         holder.findViewById<EditText>(R.id.wears).hint = "Default for Catagory is " + category.desiredWorn + "    "
         holder.findViewById<TextView>(R.id.buttonCancel).setOnClickListener {
             inAddItem = false
@@ -564,10 +564,10 @@ class MainActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable) {
                 //hide search result if search term is empty
                 if (s.isEmpty()) {
-                    fadeOut(searchResult)
+                    if (searchResult.visibility != View.GONE) fadeOut(searchResult)
                     return
                 }
-                fadeIn(searchResult)
+                if (searchResult.visibility != View.VISIBLE) fadeIn(searchResult)
                 val searchTerm = s.toString()
                 searchResults.clear()
                 //search for items with matching names
@@ -594,7 +594,7 @@ class MainActivity : AppCompatActivity() {
                 inAddItem = false
                 hideKeyboard(this)
                 //add cancelled, revert to default state
-                imageViewPreview.setImageResource(R.drawable.round_camera_24)
+                imageViewPreview.setImageResource(R.drawable.round_camera_fill_24)
                 findViewById<EditText>(R.id.wears).setText("")
                 findViewById<EditText>(R.id.name).setText("")
                 fadeOut(findViewById<View>(R.id.addHolder))
@@ -805,7 +805,7 @@ class MainActivity : AppCompatActivity() {
                 override fun onAnimationEnd(animation: Animator) {
                     view.visibility = View.GONE
 
-                    findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.round_camera_24)
+                    findViewById<ImageView>(R.id.photoPreview).setImageResource(R.drawable.round_camera_fill_24)
                     findViewById<EditText>(R.id.wears).setText("")
                     findViewById<EditText>(R.id.name).setText("")
                 }

@@ -20,7 +20,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0"
-        tools:visibility="visible">
+        tools:visibility="gone">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/mainWrapper"
@@ -66,9 +66,9 @@
                 android:gravity="center"
                 android:paddingTop="16dp"
                 android:paddingBottom="16dp"
-                android:textFontWeight="700"
                 android:text="@string/slide_to_end_day"
                 android:textAllCaps="true"
+                android:textFontWeight="700"
                 app:layout_constraintEnd_toEndOf="@id/endSlider"
                 app:layout_constraintStart_toStartOf="@id/endSlider"
                 app:layout_constraintTop_toBottomOf="@id/outfitPreview" />
@@ -230,12 +230,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="16dp"
+                android:contentDescription="@string/more_info"
                 android:padding="8dp"
                 app:layout_constraintBottom_toBottomOf="@id/title"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/title"
-                app:srcCompat="@drawable/round_info_24"
-                android:contentDescription="@string/more_info" />
+                app:srcCompat="@drawable/round_info_24" />
 
             <TextView
                 android:id="@+id/email"
@@ -267,7 +267,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:visibility="gone">
+        tools:visibility="visible">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -286,12 +286,13 @@
                 android:id="@+id/photoPreview"
                 android:layout_width="100dp"
                 android:layout_height="100dp"
+                android:layout_marginStart="24dp"
                 android:layout_marginTop="8dp"
                 android:contentDescription="@string/item_preview"
                 android:src="@android:color/transparent"
-                app:layout_constraintStart_toStartOf="@+id/addTitle"
-                app:layout_constraintTop_toBottomOf="@id/addTitle"
-                app:srcCompat="@drawable/round_camera_24" />
+                app:layout_constraintStart_toStartOf="@+id/imageView4"
+                app:layout_constraintTop_toBottomOf="@+id/imageView4"
+                app:srcCompat="@drawable/round_camera_fill_24" />
 
             <TextView
                 android:id="@+id/takePhoto"
@@ -326,6 +327,7 @@
                 android:autofillHints=""
                 android:hint="@string/desired_wears"
                 android:inputType="text"
+                android:imeOptions="actionDone"
                 app:layout_constraintStart_toStartOf="@+id/takePhoto"
                 app:layout_constraintTop_toBottomOf="@id/name" />
 
@@ -347,12 +349,12 @@
                 android:id="@+id/addTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginStart="8dp"
                 android:textFontWeight="600"
                 android:textSize="24sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintBottom_toBottomOf="@+id/imageView4"
+                app:layout_constraintStart_toEndOf="@+id/imageView4"
+                app:layout_constraintTop_toTopOf="@+id/imageView4" />
 
             <TextView
                 android:id="@+id/buttonCancel"
@@ -366,6 +368,17 @@
                 app:layout_constraintBottom_toBottomOf="@+id/doneAdding"
                 app:layout_constraintStart_toEndOf="@+id/doneAdding"
                 app:layout_constraintTop_toTopOf="@+id/doneAdding" />
+
+            <ImageView
+                android:id="@+id/imageView4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="16dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@drawable/round_add_circle_48"
+                android:contentDescription="@string/add" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

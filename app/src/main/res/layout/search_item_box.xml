@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/linearLayout"
-    android:layout_width="wrap_content"
+    android:layout_width="148dp"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
     android:background="@drawable/rectangle_bg_grey"
@@ -14,16 +14,16 @@
         android:id="@+id/searchItemPreview"
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="24dp"
         android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginEnd="24dp"
+        android:contentDescription="@string/item_preview"
         android:gravity="center"
         android:text=""
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/searchItemName"
-        tools:width="120dp"
-        android:contentDescription="@string/item_preview" />
+        tools:width="120dp" />
 
 
     <TextView
@@ -44,12 +44,13 @@
 
     <TextView
         android:id="@+id/searchItemName"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:gravity="center"
+        android:lines="2"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:textStyle="bold"
         tools:text="USDG Shirt" />
 
     <Button

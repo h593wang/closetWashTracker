@@ -40,7 +40,6 @@
         app:layout_constraintBottom_toTopOf="@id/view"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/ic_launcher_background"
         android:contentDescription="@string/item_preview" />
 
     <TextView
@@ -95,11 +94,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="1dp"
+        android:layout_marginTop="1dp"
+        android:contentDescription="@string/wears"
         app:layout_constraintBottom_toBottomOf="@+id/itemWornTotal"
         app:layout_constraintStart_toEndOf="@id/itemWornTotal"
         app:layout_constraintTop_toTopOf="@+id/itemWornTotal"
-        app:srcCompat="@drawable/round_checkroom_24"
-        android:contentDescription="@string/wears" />
+        app:srcCompat="@drawable/round_checkroom_24" />
 
     <TextView
         android:id="@+id/itemWashTotal"

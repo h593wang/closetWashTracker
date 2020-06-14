@@ -53,7 +53,7 @@ class SearchAdapter(private var context: Activity, private val clothes: ArrayLis
             preview.setImageResource(R.drawable.round_camera_24)
         } else {
             Picasso.Builder(context).executor(Executors.newSingleThreadExecutor()).build()
-                .load("file://" + clothes[position].photoPath).into(preview)
+                .load("file://" + clothes[position].photoPath).noFade().noPlaceholder().into(preview)
         }
 
         wearButton.visibility = View.VISIBLE
@@ -72,6 +72,4 @@ class SearchAdapter(private var context: Activity, private val clothes: ArrayLis
 
 
     }
-
-
 }

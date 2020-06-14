@@ -120,12 +120,14 @@ class ItemAdapter(
             washMax.addSingleTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable) {
                     if (!editMode) return
-                    if (s.toString().isEmpty() || s.toString().toIntOrNull() == null || s.toString().toInt() < 1) return
+                    if (s.toString().isEmpty() || s.toString().toIntOrNull() == null || s.toString().toInt() < 1) {
+                        (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id]?.maxWorn = item.maxWorn
+                        return
+                    }
                     if (!(context.application as ApplicationBase).changedItems.containsKey(item.categoryId.toString() + "-" + item.id)) {
-                        (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id] = item
+                        (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id] = item.copy()
                     }
                     (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id]?.maxWorn = s.toString().toInt()
-                    item.maxWorn = s.toString().toInt()
                 }
 
                 override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
@@ -139,12 +141,14 @@ class ItemAdapter(
             name.addSingleTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable) {
                     if (!editMode) return
-                    if (s.toString().isEmpty()) return
+                    if (s.toString().isEmpty()) {
+                        (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id]?.name = item.name
+                        return
+                    }
                     if (!(context.application as ApplicationBase).changedItems.containsKey(item.categoryId.toString() + "-" + item.id)) {
-                        (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id] = item
+                        (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id] = item.copy()
                     }
                     (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id]?.name = s.toString()
-                    item.name = s.toString()
                 }
 
                 override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}

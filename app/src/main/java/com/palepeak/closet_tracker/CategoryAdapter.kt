@@ -1,7 +1,5 @@
 package com.palepeak.closet_tracker
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.app.Activity
 import android.text.Editable
@@ -87,6 +85,8 @@ class CategoryAdapter(
         //get category for current position
         val category = categories[position]
 
+        //sort category items to be most worn first
+        category.items.sortWith(Comparator { p0, p1 -> (p1?.wornTotal ?:0) - (p0?.wornTotal ?:0) })
         //initialize items recyclerview
         val adapter = ItemAdapter(activityContext, category.items, itemListener, itemDeleteListener, addItemListener, category.id, editMode)
         val linearLayoutManager =  LinearLayoutManager(activityContext)
@@ -95,16 +95,7 @@ class CategoryAdapter(
         icon.rotation = 0f
 
         //handle expanded info
-        if (category.expanded) {
-            bg.setBackgroundResource(R.drawable.rectangle_category_expanded)
-            if (!editMode)
-            icon.rotation = 180f
-            itemsList.visibility = View.VISIBLE
-        } else {
-            bg.setBackgroundResource(R.drawable.rectangle_category_header)
-            icon.rotation = 0f
-            itemsList.visibility = View.GONE
-        }
+        handleExpanded(category.expanded, itemsList, icon, bg)
 
         //set fields based on category data
         name.removeSingleTextChangedListener()
@@ -182,56 +173,31 @@ class CategoryAdapter(
                 rotate.interpolator = LinearInterpolator()
                 rotate.start()
                 rotate.doOnEnd {
-                    if (category.expanded){
-                        if (!editMode)
-                        icon.rotation = 180f
-                        itemsList.visibility = View.VISIBLE
-                    } else {
-                        icon.rotation = 0f
-                        itemsList.visibility = View.GONE
-                    }
+                    handleExpanded(category.expanded, itemsList, icon, bg)
                 }
-
-                if (category.expanded) {
-                    bg.setBackgroundResource(R.drawable.rectangle_category_expanded)
-                    if (!editMode)
-                    icon.rotation = 180f
-                    fadeIn(itemsList)
-                } else {
-                    bg.setBackgroundResource(R.drawable.rectangle_category_header)
-                    icon.rotation = 0f
-                    fadeOut(itemsList)
-                }
+                handleExpanded(category.expanded, itemsList, icon, bg)
             }
         }
     }
 
-
-    private fun fadeIn(view: View) {
-        view.apply {
-            // Set the content view to 0% opacity but visible, so that it is visible
-            // (but fully transparent) during the animation.
-            alpha = 0f
-            visibility = View.VISIBLE
-
-            // Animate the content view to 100% opacity, and clear any animation
-            // listener set on the view.
-            animate()
-                .alpha(1f)
-                .setDuration((activityContext.application as ApplicationBase).shortAnimationDuration.toLong())
-                .setListener(null)
+    private fun handleExpanded(expanded: Boolean, itemsList: View, icon: View, bg: View) {
+        when {
+            editMode -> {
+                bg.setBackgroundResource(R.drawable.rectangle_category_expanded)
+                icon.rotation = 0f
+                itemsList.visibility = View.VISIBLE
+            }
+            expanded -> {
+                bg.setBackgroundResource(R.drawable.rectangle_category_expanded)
+                icon.rotation = 180f
+                itemsList.visibility = View.VISIBLE
+            }
+            else -> {
+                bg.setBackgroundResource(R.drawable.rectangle_category_header)
+                icon.rotation = 0f
+                itemsList.visibility = View.GONE
+            }
         }
-    }
-
-    private fun fadeOut(view: View) {
-        view.animate()
-            .alpha(0f)
-            .setDuration((activityContext.application as ApplicationBase).shortAnimationDuration.toLong())
-            .setListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    view.visibility = View.GONE
-                }
-            })
     }
 }
 
