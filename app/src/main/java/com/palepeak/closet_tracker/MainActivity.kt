@@ -16,7 +16,6 @@ import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.TypedValue
-import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
@@ -606,10 +605,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<TextView>(R.id.email).setOnClickListener {
+            val addresses = Array(1){"palepeak25@gmail.com"}
             (application as ApplicationBase).vibrate(20)
             val intent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:") // only email apps should handle this
-                putExtra(Intent.EXTRA_EMAIL, "palepeak25@gmail.com")
+                data = Uri.parse("mailto:")
+                putExtra(Intent.EXTRA_EMAIL, addresses)
                 putExtra(Intent.EXTRA_SUBJECT, "Contact: Closet & Laundry")
             }
             if (intent.resolveActivity(packageManager) != null) {
@@ -783,6 +783,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun fadeIn(view: View) {
         view.apply {
+            clearAnimation()
             // Set the content view to 0% opacity but visible, so that it is visible
             // (but fully transparent) during the animation.
             alpha = 0f
@@ -810,6 +811,10 @@ class MainActivity : AppCompatActivity() {
                     findViewById<EditText>(R.id.name).setText("")
                 }
             })
+    }
+
+    fun clearEditTextFocus() {
+        searchEditText.clearFocus()
     }
 
     //companion object for request ID

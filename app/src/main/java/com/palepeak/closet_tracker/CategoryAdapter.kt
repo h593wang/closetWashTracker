@@ -7,6 +7,7 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.animation.LinearInterpolator
 import android.widget.ImageView
 import android.widget.TextView
@@ -103,7 +104,33 @@ class CategoryAdapter(
         wears.setText(category.desiredWorn.toString())
         size.text = activityContext.resources.getString(R.string.number_of_items, category.items.size)
         name.setText(category.name)
-        clickHolder.setOnClickListener(null)
+        clickHolder.setOnClickListener {
+            //clear edittext focus so it doesnt jump up back to the search edittext
+            (activityContext as MainActivity).clearEditTextFocus()
+            (activityContext.application as ApplicationBase).vibrate(10)
+            category.expanded = !category.expanded
+
+            if (editMode) {
+                handleExpanded(category.expanded, itemsList, icon, bg)
+            } else {
+                icon.pivotX = icon.width / 2f
+                icon.pivotY = icon.height / 2f
+                val rotate = ObjectAnimator.ofFloat(
+                    icon,
+                    "rotation",
+                    icon.rotation,
+                    (icon.rotation + 180) % 360
+                )
+                rotate.duration =
+                    (activityContext.application as ApplicationBase).shortAnimationDuration.toLong()
+                rotate.interpolator = LinearInterpolator()
+                rotate.start()
+                rotate.doOnEnd {
+                    handleExpanded(category.expanded, itemsList, icon, bg)
+                }
+            }
+        }
+        clickHolder.bringToFront()
 
         //handle edit mode and undoing edit mode
         if (editMode) {
@@ -145,11 +172,10 @@ class CategoryAdapter(
                 override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
             })
 
-            //clickHolder holds the clicker for expanding
-            clickHolder.isClickable = false
             //make the icon delete, and add the delete click listener to it
             icon.isClickable = true
             icon.setImageResource(R.drawable.round_delete_forever_24)
+            icon.bringToFront()
             icon.tag = category.id
             icon.setOnClickListener(deleteListener)
         } else {
@@ -159,34 +185,12 @@ class CategoryAdapter(
             //disable delete icon and change it to the expand icon
             icon.isClickable = false
             //add expand handling to clickHolder
-            clickHolder.isClickable = true
-            clickHolder.bringToFront()
             icon.setImageResource(R.drawable.expand)
-            clickHolder.setOnClickListener {
-                (activityContext.application as ApplicationBase).vibrate(10)
-                category.expanded = !category.expanded
-
-                icon.pivotX = icon.width/2f
-                icon.pivotY = icon.height/2f
-                val rotate = ObjectAnimator.ofFloat(icon, "rotation", icon.rotation, (icon.rotation+180)%360)
-                rotate.duration = (activityContext.application as ApplicationBase).shortAnimationDuration.toLong()
-                rotate.interpolator = LinearInterpolator()
-                rotate.start()
-                rotate.doOnEnd {
-                    handleExpanded(category.expanded, itemsList, icon, bg)
-                }
-                handleExpanded(category.expanded, itemsList, icon, bg)
-            }
         }
     }
 
     private fun handleExpanded(expanded: Boolean, itemsList: View, icon: View, bg: View) {
         when {
-            editMode -> {
-                bg.setBackgroundResource(R.drawable.rectangle_category_expanded)
-                icon.rotation = 0f
-                itemsList.visibility = View.VISIBLE
-            }
             expanded -> {
                 bg.setBackgroundResource(R.drawable.rectangle_category_expanded)
                 icon.rotation = 180f
@@ -198,6 +202,7 @@ class CategoryAdapter(
                 itemsList.visibility = View.GONE
             }
         }
+        if (editMode) icon.rotation = 0f
     }
 }
 
