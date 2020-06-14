@@ -17,7 +17,7 @@ class ApplicationBase: Application() {
     fun vibrate(length: Long) {
         val v = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            v.vibrate(VibrationEffect.createOneShot(length, VibrationEffect.DEFAULT_AMPLITUDE))
+            v.vibrate(VibrationEffect.createOneShot(length, 20))
         } else {
             v.vibrate(length)
         }

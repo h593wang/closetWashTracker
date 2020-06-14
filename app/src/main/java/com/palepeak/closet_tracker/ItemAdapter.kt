@@ -100,9 +100,7 @@ class ItemAdapter(
             photo.setImageResource(R.drawable.round_camera_24)
         } else {
             //load image into imageview using picasso
-            Picasso.Builder(context)
-                .executor(Executors.newSingleThreadExecutor())
-                .build()
+            Picasso.get()
                 .load("file://" + item.photoPath)
                 .into(photo)
         }

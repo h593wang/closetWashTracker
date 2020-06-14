@@ -99,7 +99,7 @@ class PreviewAdapter(private var context: Activity, private val clothes: ArrayLi
         if (clothes[position].photoPath.isEmpty()) {
             photo.setImageResource(R.drawable.round_camera_24)
         } else {
-            Picasso.Builder(context).executor(Executors.newSingleThreadExecutor()).build()
+            Picasso.get()
                 .load("file://" + clothes[position].photoPath).into(photo)
         }
     }

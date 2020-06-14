@@ -52,7 +52,7 @@ class SearchAdapter(private var context: Activity, private val clothes: ArrayLis
         if (clothes[position].photoPath.isEmpty()) {
             preview.setImageResource(R.drawable.round_camera_24)
         } else {
-            Picasso.Builder(context).executor(Executors.newSingleThreadExecutor()).build()
+            Picasso.get()
                 .load("file://" + clothes[position].photoPath).noFade().noPlaceholder().into(preview)
         }
 
