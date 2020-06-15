@@ -10,7 +10,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.squareup.picasso.Picasso
-import java.util.concurrent.Executors
 import kotlin.collections.ArrayList
 
 
@@ -81,21 +80,28 @@ class ItemAdapter(
         washMax.removeSingleTextChangedListener()
         name.removeSingleTextChangedListener()
         //setting the text based on the section info
-        wash.text = context.resources.getString(R.string.worn, item.worn)
-        washMax.setText(item.maxWorn.toString())
+        name.setText(item.name)
         wornTotal.text = context.resources.getString(R.string.totals, item.wornTotal)
         washTotal.text = item.washTotal.toString()
-        name.setText(item.name)
-        //set text color based on wash data
-        if (item.worn >= item.maxWorn) {
-            wash.setTextColor(context.resources.getColor(R.color.red))
-            washMax.setTextColor(context.resources.getColor(R.color.red))
-        }
-        else {
-            wash.setTextColor(context.resources.getColor(R.color.grey))
-            washMax.setTextColor(context.resources.getColor(R.color.grey))
+
+        if (item.maxWorn == NO_MAX_WEARS) {
+            wash.text = context.resources.getString(R.string.worn, item.worn)
+            wash.setTextColor(context.resources.getColor(android.R.color.black))
+            washMax.setText("")
+        } else {
+            wash.text = context.resources.getString(R.string.worn, item.worn)
+            washMax.setText(context.resources.getString(R.string.worn_2, item.maxWorn))
+            //set text color based on wash data
+            if (item.worn >= item.maxWorn) {
+                wash.setTextColor(context.resources.getColor(R.color.red))
+                washMax.setTextColor(context.resources.getColor(R.color.red))
+            } else {
+                wash.setTextColor(context.resources.getColor(android.R.color.black))
+                washMax.setTextColor(context.resources.getColor(android.R.color.black))
+            }
         }
 
+        //handling photo
         if (item.photoPath.isEmpty()) {
             photo.setImageResource(R.drawable.round_camera_24)
         } else {
@@ -111,26 +117,28 @@ class ItemAdapter(
             add.setOnClickListener(itemDeleteListener)
             add.setText(R.string.remove)
 
-            //editing handling for maxWash
-            washMax.setBackgroundResource(R.drawable.bottom_line)
-            washMax.isEnabled = true
-            washMax.isClickable = true
-            washMax.addSingleTextChangedListener(object : TextWatcher {
-                override fun afterTextChanged(s: Editable) {
-                    if (!editMode) return
-                    if (s.toString().isEmpty() || s.toString().toIntOrNull() == null || s.toString().toInt() < 1) {
-                        (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id]?.maxWorn = item.maxWorn
-                        return
+            if (item.maxWorn != NO_MAX_WEARS) {
+                //editing handling for maxWash
+                washMax.setBackgroundResource(R.drawable.bottom_line)
+                washMax.isEnabled = true
+                washMax.isClickable = true
+                washMax.addSingleTextChangedListener(object : TextWatcher {
+                    override fun afterTextChanged(s: Editable) {
+                        if (!editMode) return
+                        if (s.toString().isEmpty() || s.toString().toIntOrNull() == null || s.toString().toInt() < 1) {
+                            (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id]?.maxWorn = item.maxWorn
+                            return
+                        }
+                        if (!(context.application as ApplicationBase).changedItems.containsKey(item.categoryId.toString() + "-" + item.id)) {
+                            (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id] = item.copy()
+                        }
+                        (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id]?.maxWorn = s.toString().toInt()
                     }
-                    if (!(context.application as ApplicationBase).changedItems.containsKey(item.categoryId.toString() + "-" + item.id)) {
-                        (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id] = item.copy()
-                    }
-                    (context.application as ApplicationBase).changedItems[item.categoryId.toString() + "-" + item.id]?.maxWorn = s.toString().toInt()
-                }
 
-                override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
-            })
+                    override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
+                    override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
+                })
+            }
 
             //editing handling for name
             name.setBackgroundResource(R.drawable.bottom_line)

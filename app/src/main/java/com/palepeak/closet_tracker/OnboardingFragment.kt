@@ -27,7 +27,7 @@ class OnboardingFragment : DialogFragment() {
     //set background to be rounded grey rectangle
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog =  super.onCreateDialog(savedInstanceState)
-        dialog.window?.setBackgroundDrawableResource(R.drawable.rectangle_grey)
+        dialog.window?.setBackgroundDrawableResource(R.drawable.rectangle_bg_grey)
         return dialog
     }
 

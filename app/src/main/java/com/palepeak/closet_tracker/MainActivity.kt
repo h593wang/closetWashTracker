@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var searchEditText: EditText
     private lateinit var bitmap: Bitmap
     private lateinit var seekFiller: ImageView
+    private lateinit var trackCheckBox: CheckBox
     private var filename = ""
     private var searchResults = ArrayList<ClothesItem>()
     private var inAddItem = false
@@ -198,7 +199,14 @@ class MainActivity : AppCompatActivity() {
         holder.findViewById<TextView>(R.id.addTitle).setText(R.string.add_category)
         holder.findViewById<View>(R.id.photoPreview).visibility = View.GONE
         holder.findViewById<View>(R.id.takePhoto).visibility = View.GONE
-        holder.findViewById<EditText>(R.id.wears).setHint(R.string.default_wears_before_wash)
+        val wearsEditText = holder.findViewById<EditText>(R.id.wears)
+        wearsEditText.setHint(R.string.default_wears_before_wash)
+        wearsEditText.isEnabled = true
+        trackCheckBox = holder.findViewById(R.id.trackWearsCheck)
+        trackCheckBox.isChecked = false
+        trackCheckBox.setOnClickListener {
+            wearsEditText.isEnabled = !trackCheckBox.isChecked
+        }
         holder.findViewById<TextView>(R.id.buttonCancel).setOnClickListener {
             //add cancelled, revert to default state
             inAddCat = false
@@ -211,11 +219,11 @@ class MainActivity : AppCompatActivity() {
             hideKeyboard(this)
             val name = holder.findViewById<EditText>(R.id.name).text.toString()
             val wears = holder.findViewById<EditText>(R.id.wears).text.toString()
-            if (!(name.isEmpty() || wears.isEmpty() || wears.toIntOrNull() == null || wears.toInt() < 1)) {
+            if (name.isNotEmpty() && (trackCheckBox.isChecked || !(wears.isEmpty() || wears.toIntOrNull() == null || wears.toInt() < 1 || wears.toInt() > 999))) {
                 //if fields are valid, create category and add to saveData
                 val cat = ClothesCategory(
                     validCategoryID,
-                    wears.toInt(),
+                    if (!trackCheckBox.isChecked) wears.toInt() else NO_MAX_WEARS,
                     name,
                     ArrayList(),
                     false
@@ -231,7 +239,8 @@ class MainActivity : AppCompatActivity() {
                     name.isEmpty() -> error = "Your category couldn't be added because the name was missing"
                     wears.isEmpty() -> error = "Your category couldn't be added because the desired wears was missing"
                     wears.toIntOrNull() == null -> error = "Your category couldn't be added because the desired wears wasn't a number"
-                    wears.toInt() < 1 -> error = "Invalid max wears"
+                    wears.toInt() < 1 -> error = "Your category couldn't be added. Please enter a value greater than 0 for desired max wears"
+                    wears.toInt() > 999 -> error = "Your category couldn't be added. Please enter a value less than 1000 for desired max wears"
                 }
                 //and show dialog
                 AlertDialog.Builder(this, R.style.MyDialogTheme)
@@ -292,7 +301,15 @@ class MainActivity : AppCompatActivity() {
         holder.findViewById<TextView>(R.id.addTitle).setText(R.string.add_item)
         imageViewPreview.visibility = View.VISIBLE
         imageViewPreview.setImageResource(R.drawable.round_camera_fill_24)
-        holder.findViewById<EditText>(R.id.wears).hint = "Default for Catagory is " + category.desiredWorn + "    "
+        val wearsEditText = holder.findViewById<EditText>(R.id.wears)
+        if (category.desiredWorn == NO_MAX_WEARS) wearsEditText.hint = "Category default is no max"
+        else wearsEditText.hint = "Default for category is " + category.desiredWorn + "    "
+        wearsEditText.isEnabled = true
+        trackCheckBox = holder.findViewById(R.id.trackWearsCheck)
+        trackCheckBox.isChecked = false
+        trackCheckBox.setOnClickListener {
+            wearsEditText.isEnabled = !trackCheckBox.isChecked
+        }
         holder.findViewById<TextView>(R.id.buttonCancel).setOnClickListener {
             inAddItem = false
             hideKeyboard(this)
@@ -323,13 +340,13 @@ class MainActivity : AppCompatActivity() {
 
             val name = holder.findViewById<EditText>(R.id.name).text.toString()
             val wears = holder.findViewById<EditText>(R.id.wears).text.toString()
-            if (!(name.isEmpty() || wears.isEmpty() || wears.toIntOrNull() == null || wears.toInt() < 1)) {
+            if (name.isNotEmpty() && (trackCheckBox.isChecked || !(wears.isEmpty() || wears.toIntOrNull() == null || wears.toInt() < 1 || wears.toInt() > 999))) {
                 //if entries are valid, create item and add to savedata
                 val item = ClothesItem(
                     validItemId,
                     category.id,
                     0,
-                    wears.toInt(),
+                    if (trackCheckBox.isChecked) NO_MAX_WEARS else wears.toInt(),
                     name,
                     filenameAbs,
                     false,
@@ -346,7 +363,8 @@ class MainActivity : AppCompatActivity() {
                     name.isEmpty() -> error = "Your item couldn't be added because the name was missing"
                     wears.isEmpty() -> error = "Your item couldn't be added because the desired wears was missing"
                     wears.toIntOrNull() == null -> error = "Your item couldn't be added because the desired wears wasn't a number"
-                    wears.toInt() < 1 -> error = "Invalid max wears"
+                    wears.toInt() < 1 -> error = "Your category couldn't be added. Please enter a value greater than 0 for desired max wears"
+                    wears.toInt() > 999 -> error = "Your category couldn't be added. Please enter a value less than 1000 for desired max wears"
                 }
                 AlertDialog.Builder(this, R.style.MyDialogTheme)
                     .setTitle("Error")

@@ -10,7 +10,6 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.squareup.picasso.Picasso
 import java.util.*
-import java.util.concurrent.Executors
 
 //adapter for search result recyclerview
 class SearchAdapter(private var context: Activity, private val clothes: ArrayList<ClothesItem>, private val listener: View.OnClickListener) : RecyclerView.Adapter<SearchAdapter.ViewHolder>() {
@@ -64,11 +63,16 @@ class SearchAdapter(private var context: Activity, private val clothes: ArrayLis
         }
 
         worn.visibility = View.VISIBLE
-        worn.text = context.resources.getString(R.string.worn_max, clothes[position].worn, clothes[position].maxWorn)
-        //set text color based on if the wear amount was exceeded
-        if (clothes[position].worn >= clothes[position].maxWorn)
-            worn.setTextColor(context.resources.getColor(R.color.red))
-        else worn.setTextColor(context.resources.getColor(R.color.grey))
+        if (clothes[position].maxWorn == NO_MAX_WEARS) {
+            worn.setTextColor(context.resources.getColor(android.R.color.black))
+            worn.text = context.resources.getString(R.string.worn, clothes[position].worn)
+        } else {
+            worn.text = context.resources.getString(R.string.worn_max, clothes[position].worn, clothes[position].maxWorn)
+            //set text color based on if the wear amount was exceeded
+            if (clothes[position].worn >= clothes[position].maxWorn)
+                worn.setTextColor(context.resources.getColor(R.color.red))
+            else worn.setTextColor(context.resources.getColor(android.R.color.black))
+        }
 
 
     }

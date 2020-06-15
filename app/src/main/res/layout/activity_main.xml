@@ -20,7 +20,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0"
-        tools:visibility="visible">
+        tools:visibility="gone">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/mainWrapper"
@@ -379,6 +379,16 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:srcCompat="@drawable/round_add_circle_48"
                 android:contentDescription="@string/add" />
+
+            <CheckBox
+                android:id="@+id/trackWearsCheck"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/no_max"
+                app:layout_constraintBottom_toBottomOf="@+id/wears"
+                app:layout_constraintStart_toEndOf="@+id/wears"
+                app:layout_constraintTop_toTopOf="@+id/wears" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

@@ -7,7 +7,6 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
 import android.view.animation.LinearInterpolator
 import android.widget.ImageView
 import android.widget.TextView
@@ -64,6 +63,7 @@ class CategoryAdapter(
         return categories.size + 1
     }
 
+    @Suppress("DEPRECATION")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         if (holder.viewType == 1) {
             //initialize add category button
@@ -76,12 +76,14 @@ class CategoryAdapter(
 
         val wears = holder.itemView.findViewById<SingleListenEditText>(R.id.categoryWears)
         val size = holder.itemView.findViewById<TextView>(R.id.categoryItemSize)
+        val sizeCentered = holder.itemView.findViewById<TextView>(R.id.categoryItemSizeCentered)
         val name = holder.itemView.findViewById<SingleListenEditText>(R.id.categoryName)
         val bg = holder.itemView.findViewById<View>(R.id.categoryWrapper)
         //clickHolder holds the onClickListener for expanding category
         val clickHolder = holder.itemView.findViewById<View>(R.id.categoryItemClicker)
         val icon = holder.itemView.findViewById<ImageView>(R.id.categoryIcon)
         val itemsList = holder.itemView.findViewById<RecyclerView>(R.id.categoryItemsList)
+        val washLabel = holder.itemView.findViewById<TextView>(R.id.categoryWearsLabel)
 
         //get category for current position
         val category = categories[position]
@@ -101,8 +103,20 @@ class CategoryAdapter(
         //set fields based on category data
         name.removeSingleTextChangedListener()
         wears.removeSingleTextChangedListener()
+
+        sizeCentered.text = ""
+        size.text = ""
+        washLabel.text = activityContext.resources.getString(R.string.default_wears)
         wears.setText(category.desiredWorn.toString())
-        size.text = activityContext.resources.getString(R.string.number_of_items, category.items.size)
+        if (category.desiredWorn == NO_MAX_WEARS) {
+            washLabel.setTextColor(activityContext.resources.getColor(R.color.itembg))
+            wears.setTextColor(activityContext.resources.getColor(R.color.itembg))
+            sizeCentered.text = activityContext.resources.getString(R.string.number_of_items, category.items.size)
+        } else {
+            washLabel.setTextColor(activityContext.resources.getColor(android.R.color.black))
+            wears.setTextColor(activityContext.resources.getColor(android.R.color.black))
+            size.text = activityContext.resources.getString(R.string.number_of_items, category.items.size)
+        }
         name.setText(category.name)
         clickHolder.setOnClickListener {
             //clear edittext focus so it doesnt jump up back to the search edittext
@@ -154,23 +168,30 @@ class CategoryAdapter(
             })
 
             //change wears to edit mode
-            wears.setBackgroundResource(R.drawable.bottom_line)
-            wears.bringToFront()
-            wears.addSingleTextChangedListener(object : TextWatcher {
-                override fun afterTextChanged(s: Editable) {
-                    if (!editMode) return
-                    if (s.toString().isEmpty() || s.toString().toIntOrNull() == null || s.toString().toInt() < 1) return
-                    //save change to changedCategories
-                    if (!(activityContext.application as ApplicationBase).changedCategories.containsKey(category.id)) {
-                        (activityContext.application as ApplicationBase).changedCategories[category.id] = category
+            if (category.desiredWorn != NO_MAX_WEARS) {
+                wears.setBackgroundResource(R.drawable.bottom_line)
+                wears.bringToFront()
+                wears.addSingleTextChangedListener(object : TextWatcher {
+                    override fun afterTextChanged(s: Editable) {
+                        if (!editMode) return
+                        if (s.toString().isEmpty() || s.toString().toIntOrNull() == null || s.toString().toInt() < 1) return
+                        //save change to changedCategories
+                        if (!(activityContext.application as ApplicationBase).changedCategories.containsKey(
+                                category.id
+                            )
+                        ) {
+                            (activityContext.application as ApplicationBase).changedCategories[category.id] =
+                                category
+                        }
+                        (activityContext.application as ApplicationBase).changedCategories[category.id]?.desiredWorn =
+                            s.toString().toInt()
+                        category.desiredWorn = s.toString().toInt()
                     }
-                    (activityContext.application as ApplicationBase).changedCategories[category.id]?.desiredWorn = s.toString().toInt()
-                    category.desiredWorn = s.toString().toInt()
-                }
 
-                override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
-            })
+                    override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
+                    override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
+                })
+            }
 
             //make the icon delete, and add the delete click listener to it
             icon.isClickable = true
