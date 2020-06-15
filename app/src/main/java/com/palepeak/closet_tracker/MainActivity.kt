@@ -21,9 +21,13 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.io.*
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
 import kotlin.math.min
 
 
@@ -37,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bitmap: Bitmap
     private lateinit var seekFiller: ImageView
     private lateinit var trackCheckBox: CheckBox
+    private lateinit var dragAndDropToast: Toast
     private var filename = ""
     private var searchResults = ArrayList<ClothesItem>()
     private var inAddItem = false
@@ -445,11 +450,26 @@ class MainActivity : AppCompatActivity() {
         }
 
         //handling for main clothing list recyclerview
+        dragAndDropToast = Toast.makeText(applicationContext, "Please enter edit mode to move categories", Toast.LENGTH_LONG)
         val adapter = CategoryAdapter(this, saveData.savedCategories, categoryDeleteListener, itemWearListener, itemDeleteListener, addCategoryListener, addItemListener)
         categories = findViewById(R.id.categoryList)
         val linearLayoutManager =  LinearLayoutManager(this)
         categories.layoutManager = linearLayoutManager
         categories.adapter = adapter
+        val helper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0){
+            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                if (!(categories.adapter as CategoryAdapter).editMode) {
+                    dragAndDropToast.show()
+                    return false
+                }
+                Collections.swap(saveData.savedCategories, viewHolder.adapterPosition, target.adapterPosition)
+                adapter.notifyItemMoved(viewHolder.adapterPosition, target.adapterPosition)
+                return false
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+        })
+        helper.attachToRecyclerView(categories)
 
         //handling for todays outfit preview recyclerview
         val adapter2 = PreviewAdapter(this, saveData.activeItems, removeActiveItem)
@@ -606,7 +626,7 @@ class MainActivity : AppCompatActivity() {
             if (inAddCat) {
                 inAddCat = false
                 hideKeyboard(this)
-                fadeOut(findViewById<View>(R.id.addHolder))
+                fadeOut(findViewById(R.id.addHolder))
             } else if (inAddItem) {
                 inAddItem = false
                 hideKeyboard(this)
@@ -614,7 +634,7 @@ class MainActivity : AppCompatActivity() {
                 imageViewPreview.setImageResource(R.drawable.round_camera_fill_24)
                 findViewById<EditText>(R.id.wears).setText("")
                 findViewById<EditText>(R.id.name).setText("")
-                fadeOut(findViewById<View>(R.id.addHolder))
+                fadeOut(findViewById(R.id.addHolder))
             }
         }
 
@@ -678,7 +698,7 @@ class MainActivity : AppCompatActivity() {
         if (findViewById<View>(R.id.addHolder).visibility == View.VISIBLE) {
             inAddItem = false
             inAddCat = false
-            fadeOut(findViewById<View>(R.id.addHolder))
+            fadeOut(findViewById(R.id.addHolder))
             return
         }
         super.onBackPressed()
